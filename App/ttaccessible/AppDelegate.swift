@@ -74,6 +74,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var userAccountsWindowController: NSWindowController?
     private var bannedUsersWindowController: NSWindowController?
     private var userInfoWindowController: UserInfoWindowController?
+    private var mediaStreamingPlayerWindowController: MediaStreamingPlayerWindowController?
+    private weak var mediaStreamingPlayerViewController: MediaStreamingPlayerViewController?
     private weak var savedServersViewController: SavedServersViewController?
     private weak var connectedServerViewController: ConnectedServerViewController?
     private weak var privateMessagesViewController: PrivateMessagesViewController?
@@ -1954,6 +1956,68 @@ extension AppDelegate: TeamTalkConnectionControllerDelegate {
 
     func teamTalkConnectionController(_ controller: TeamTalkConnectionController, didReceiveBannedUsers bans: [BannedUserProperties]) {
         bannedUsersViewController?.update(bans: bans)
+    }
+
+    func teamTalkConnectionController(_ controller: TeamTalkConnectionController, didUpdateMediaStreamingProgress progress: MediaStreamingProgress) {
+        menuState.setMediaStreamingActive(progress.isActive)
+        if progress.isActive {
+            showMediaStreamingPlayerWindow(with: progress)
+        } else {
+            closeMediaStreamingPlayerWindow()
+        }
+    }
+}
+
+extension AppDelegate: MediaStreamingPlayerActions {
+    func mediaStreamingPlayerDidTogglePlayPause() {
+        connectionController.toggleMediaStreamingPaused()
+    }
+
+    func mediaStreamingPlayerDidStop() {
+        connectionController.stopStreamingMediaFile()
+    }
+
+    func mediaStreamingPlayerDidSeek(toMSec offsetMSec: UInt32) {
+        connectionController.seekMediaStreaming(toMSec: offsetMSec)
+    }
+
+    func mediaStreamingPlayerDidChangeBroadcastGainPercent(_ percent: Int) {
+        connectionController.setMediaStreamingBroadcastGainPercent(percent)
+    }
+}
+
+private extension AppDelegate {
+    func showMediaStreamingPlayerWindow(with progress: MediaStreamingProgress) {
+        let viewController: MediaStreamingPlayerViewController
+        if let existing = mediaStreamingPlayerViewController {
+            viewController = existing
+        } else {
+            let newViewController = MediaStreamingPlayerViewController()
+            newViewController.actions = self
+            mediaStreamingPlayerViewController = newViewController
+            viewController = newViewController
+        }
+
+        if mediaStreamingPlayerWindowController == nil {
+            let controller = MediaStreamingPlayerWindowController(contentViewController: viewController)
+            controller.onCloseRequested = { [weak self] in
+                self?.connectionController.stopStreamingMediaFile()
+            }
+            mediaStreamingPlayerWindowController = controller
+        }
+
+        viewController.update(with: progress)
+
+        if let window = mediaStreamingPlayerWindowController?.window, !window.isVisible {
+            mediaStreamingPlayerWindowController?.showWindow(nil)
+            window.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    func closeMediaStreamingPlayerWindow() {
+        mediaStreamingPlayerWindowController?.close()
+        mediaStreamingPlayerWindowController = nil
+        mediaStreamingPlayerViewController = nil
     }
 }
 

@@ -529,6 +529,15 @@
 "mediaStream.error.startFailed" = "Failed to start streaming the audio file.";
 "history.mediaStreamingStarted" = "Streaming media: %@";
 "history.mediaStreamingFinished" = "Streaming finished";
+"mediaPlayer.window.title" = "Media Player";
+"mediaPlayer.fileName.format" = "Playing: %@";
+"mediaPlayer.fileName.empty" = "No file playing";
+"mediaPlayer.play" = "Play";
+"mediaPlayer.pause" = "Pause";
+"mediaPlayer.stop" = "Stop";
+"mediaPlayer.position.label" = "Position";
+"mediaPlayer.broadcastGain.label" = "Broadcast volume";
+"mediaPlayer.shortcuts.hint" = "Space: play/pause • Esc: stop • ← →: seek 5 s • ↑ ↓: broadcast volume";
 "privateMessages.window.title" = "Private Messages";
 "privateMessages.menu.open" = "Private Messages";
 "privateMessages.subtitle" = "All private conversations from the active session are grouped here.";

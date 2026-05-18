@@ -27,6 +27,7 @@ protocol TeamTalkConnectionControllerDelegate: AnyObject {
     func teamTalkConnectionController(_ controller: TeamTalkConnectionController, didReceiveUserAccounts accounts: [UserAccountProperties])
     func teamTalkConnectionController(_ controller: TeamTalkConnectionController, didReceiveBannedUsers users: [BannedUserProperties])
     func teamTalkConnectionController(_ controller: TeamTalkConnectionController, didReceiveIncomingTextMessage event: IncomingTextMessageEvent)
+    func teamTalkConnectionController(_ controller: TeamTalkConnectionController, didUpdateMediaStreamingProgress progress: MediaStreamingProgress)
 }
 
 final class TeamTalkConnectionController {
@@ -112,6 +113,11 @@ final class TeamTalkConnectionController {
     var mediaStreamingActive = false
     var mediaStreamingFileName: String?
     var mediaStreamingSecurityScopedURL: URL?
+    var mediaStreamingPaused = false
+    var mediaStreamingDurationMSec: UInt32 = 0
+    var mediaStreamingElapsedMSec: UInt32 = 0
+    var mediaStreamingElapsedSampleAt: Date?
+    var mediaStreamingBroadcastGainLevel: INT32 = 1000
     var teamTalkVirtualInputReady = false
     var advancedMicrophoneTargetFormat: AdvancedMicrophoneAudioTargetFormat?
     var reconnectTimer: DispatchSourceTimer?

@@ -563,13 +563,23 @@ extension TeamTalkConnectionController {
                 }
             case CLIENTEVENT_STREAM_MEDIAFILE:
                 if connectedRecord != nil {
-                    let status = message.mediafileinfo.nStatus
+                    let info = message.mediafileinfo
+                    let status = info.nStatus
                     switch status {
                     case MFS_STARTED:
+                        if info.uDurationMSec > 0 {
+                            mediaStreamingDurationMSec = info.uDurationMSec
+                        }
                         if let fileName = mediaStreamingFileName {
                             appendMediaStreamingStartedHistoryLocked(fileName: fileName)
                             publishInvalidation.insert(.history)
                         }
+                        updateMediaStreamingProgressLocked(elapsedMSec: info.uElapsedMSec, durationMSec: info.uDurationMSec)
+                    case MFS_PLAYING:
+                        updateMediaStreamingProgressLocked(elapsedMSec: info.uElapsedMSec, durationMSec: info.uDurationMSec)
+                    case MFS_PAUSED:
+                        mediaStreamingPaused = true
+                        updateMediaStreamingProgressLocked(elapsedMSec: info.uElapsedMSec, durationMSec: info.uDurationMSec)
                     case MFS_FINISHED, MFS_ABORTED, MFS_CLOSED:
                         finalizeMediaStreamingLocked(instance: instance, reason: .finished)
                     case MFS_ERROR:
@@ -769,6 +779,12 @@ extension TeamTalkConnectionController {
         mediaStreamingSecurityScopedURL = nil
         mediaStreamingActive = false
         mediaStreamingFileName = nil
+        mediaStreamingPaused = false
+        mediaStreamingDurationMSec = 0
+        mediaStreamingElapsedMSec = 0
+        mediaStreamingElapsedSampleAt = nil
+        mediaStreamingBroadcastGainLevel = INT32(SOUND_GAIN_DEFAULT.rawValue)
+        publishMediaStreamingProgressLocked()
         recordingMuxedActive = false
         recordingSeparateActive = false
         recordingFolder = nil

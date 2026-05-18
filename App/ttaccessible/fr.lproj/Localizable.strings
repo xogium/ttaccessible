@@ -529,6 +529,15 @@
 "mediaStream.error.startFailed" = "Impossible de démarrer la diffusion du fichier audio.";
 "history.mediaStreamingStarted" = "Diffusion du média : %@";
 "history.mediaStreamingFinished" = "Diffusion du média terminée";
+"mediaPlayer.window.title" = "Lecteur média";
+"mediaPlayer.fileName.format" = "Lecture : %@";
+"mediaPlayer.fileName.empty" = "Aucun fichier en lecture";
+"mediaPlayer.play" = "Lecture";
+"mediaPlayer.pause" = "Pause";
+"mediaPlayer.stop" = "Arrêter";
+"mediaPlayer.position.label" = "Position";
+"mediaPlayer.broadcastGain.label" = "Volume diffusé";
+"mediaPlayer.shortcuts.hint" = "Espace : lecture/pause • Échap : arrêt • ← → : avancer 5 s • ↑ ↓ : volume diffusé";
 "privateMessages.window.title" = "Messages privés";
 "privateMessages.menu.open" = "Messages privés";
 "privateMessages.subtitle" = "Toutes les conversations privées de la session active sont regroupées ici.";
