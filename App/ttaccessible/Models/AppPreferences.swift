@@ -8,6 +8,11 @@
 import Foundation
 
 struct AppPreferences: Codable, Equatable {
+    enum ChannelSortMode: String, Codable, CaseIterable {
+        case name
+        case userCount
+    }
+
     enum SavedServersSortField: String, Codable, CaseIterable {
         case manual
         case name
@@ -87,6 +92,7 @@ struct AppPreferences: Codable, Equatable {
         case disabledSoundEvents
         case skipKickConfirmation
         case adaptiveJitterBuffer
+        case channelSortMode
     }
 
     var defaultNickname: String
@@ -135,6 +141,7 @@ struct AppPreferences: Codable, Equatable {
     var disabledSoundEvents: Set<NotificationSound>
     var skipKickConfirmation: Bool
     var adaptiveJitterBuffer: Bool
+    var channelSortMode: ChannelSortMode
     init(
         defaultNickname: String = "TTAccessible",
         defaultStatusMessage: String = "",
@@ -181,7 +188,8 @@ struct AppPreferences: Codable, Equatable {
         soundPack: String = "Default",
         disabledSoundEvents: Set<NotificationSound> = [],
         skipKickConfirmation: Bool = false,
-        adaptiveJitterBuffer: Bool = false
+        adaptiveJitterBuffer: Bool = false,
+        channelSortMode: ChannelSortMode = .name
     ) {
         self.defaultNickname = defaultNickname
         self.defaultStatusMessage = defaultStatusMessage
@@ -229,6 +237,7 @@ struct AppPreferences: Codable, Equatable {
         self.disabledSoundEvents = disabledSoundEvents
         self.skipKickConfirmation = skipKickConfirmation
         self.adaptiveJitterBuffer = adaptiveJitterBuffer
+        self.channelSortMode = channelSortMode
     }
 
     nonisolated static func clampGainDB(_ value: Double) -> Double {
@@ -318,6 +327,7 @@ struct AppPreferences: Codable, Equatable {
         disabledSoundEvents = try container.decodeIfPresent(Set<NotificationSound>.self, forKey: .disabledSoundEvents) ?? []
         skipKickConfirmation = try container.decodeIfPresent(Bool.self, forKey: .skipKickConfirmation) ?? false
         adaptiveJitterBuffer = try container.decodeIfPresent(Bool.self, forKey: .adaptiveJitterBuffer) ?? false
+        channelSortMode = try container.decodeIfPresent(ChannelSortMode.self, forKey: .channelSortMode) ?? .name
     }
 
     func encode(to encoder: Encoder) throws {
@@ -368,6 +378,7 @@ struct AppPreferences: Codable, Equatable {
         try container.encode(disabledSoundEvents, forKey: .disabledSoundEvents)
         try container.encode(skipKickConfirmation, forKey: .skipKickConfirmation)
         try container.encode(adaptiveJitterBuffer, forKey: .adaptiveJitterBuffer)
+        try container.encode(channelSortMode, forKey: .channelSortMode)
     }
 
     func isSubscriptionEnabledByDefault(_ option: UserSubscriptionOption) -> Bool {

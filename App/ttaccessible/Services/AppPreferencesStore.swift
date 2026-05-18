@@ -222,6 +222,10 @@ final class AppPreferencesStore: ObservableObject {
         mutate { $0.adaptiveJitterBuffer = enabled }
     }
 
+    func mutateChannelSortMode(_ mode: AppPreferences.ChannelSortMode) {
+        mutate { $0.channelSortMode = mode }
+    }
+
     func updateDisabledSoundEvents(_ disabled: Set<NotificationSound>) {
         mutate { $0.disabledSoundEvents = disabled }
         SoundPlayer.shared.disabledSounds = disabled
@@ -307,6 +311,7 @@ final class ConnectionPreferencesStore: ObservableObject {
         var subscriptions: [UserSubscriptionOption: Bool]
         var skipKickConfirmation: Bool
         var adaptiveJitterBuffer: Bool
+        var channelSortMode: AppPreferences.ChannelSortMode
     }
 
     @Published private(set) var state: State
@@ -369,6 +374,10 @@ final class ConnectionPreferencesStore: ObservableObject {
         rootStore.mutateAdaptiveJitterBuffer(enabled)
     }
 
+    func updateChannelSortMode(_ mode: AppPreferences.ChannelSortMode) {
+        rootStore.mutateChannelSortMode(mode)
+    }
+
     func isSubscriptionEnabledByDefault(_ option: UserSubscriptionOption) -> Bool {
         state.subscriptions[option] ?? false
     }
@@ -394,7 +403,8 @@ final class ConnectionPreferencesStore: ObservableObject {
                 }
             ),
             skipKickConfirmation: preferences.skipKickConfirmation,
-            adaptiveJitterBuffer: preferences.adaptiveJitterBuffer
+            adaptiveJitterBuffer: preferences.adaptiveJitterBuffer,
+            channelSortMode: preferences.channelSortMode
         )
     }
 }
