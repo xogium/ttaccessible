@@ -235,6 +235,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         connectionController.disconnectSynchronously()
+        // The TeamTalk SDK's internal reactor thread sometimes outlives
+        // TT_CloseTeamTalk and crashes when exit()'s static destructors race
+        // with it. A short sleep lets the SDK threads finish unwinding before
+        // we return and the C++ statics tear down. See the 2026-05-19 crash
+        // report in libTeamTalk5.dylib::ACE_Reactor::run_reactor_event_loop.
+        Thread.sleep(forTimeInterval: 0.3)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

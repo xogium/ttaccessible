@@ -1,19 +1,11 @@
-First official release, signed with Developer ID and notarized by Apple. The app leaves beta: no more Gatekeeper warning at install.
+Bug fix release: fixes a crash that could occur when quitting the app while connected to a server.
 
-## What's new
+## Fixed
 
-- **Guided reconnection**: if the server rejects your password or username, a dialog lets you edit your credentials and automatically retries the connection once they're fixed.
-- **Stream submenu**: new option to stream a local audio file or a remote URL into the current channel.
-- **Update checker**: the app now detects new versions on GitHub and offers to download them.
-- **Custom app icon**.
-
-## Under the hood
-
-- First build with hardened runtime enabled and Developer ID signature.
-- Reworked password storage (simplified login keychain, more robust).
+- **Quit crash**: a race condition in the TeamTalk SDK could crash the app on quit when an active session was being torn down. The app now waits briefly for the SDK's internal threads to finish before letting the process exit.
 
 ## Install
 
-1. Download `ttaccessible-1.0.0-13.zip` below.
-2. Unzip and drag `ttaccessible.app` into your `/Applications` folder.
-3. On first launch, double-click the app — no Gatekeeper warning thanks to notarization.
+1. Download `ttaccessible-1.0.1-14.zip` below.
+2. Unzip and drag `ttaccessible.app` into your `/Applications` folder, replacing the previous version.
+3. Double-click — no Gatekeeper warning thanks to notarization.
