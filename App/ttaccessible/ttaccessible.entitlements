@@ -24,9 +24,9 @@
 	<true/>
 	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
 	<array>
-		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spks</string>
-		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
-		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spkp</string>
+		<string>com.math65.ttaccessible-spks</string>
+		<string>com.math65.ttaccessible-spki</string>
+		<string>com.math65.ttaccessible-spkp</string>
 	</array>
 </dict>
 </plist>
