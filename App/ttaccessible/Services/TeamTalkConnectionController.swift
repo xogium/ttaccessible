@@ -132,6 +132,8 @@ final class TeamTalkConnectionController {
     var isAutoAwayActive = false
     var autoAwayActivationTime: Date?
     var autoAwayRestoreStatusMessage = ""
+    /// Highest HID idle time observed since auto-away activated (input resets pull this down).
+    var autoAwayPeakIdleSeconds: Double?
     var pendingUserAccounts: [UserAccountProperties] = []
     var cachedUserAccounts: [UserAccountProperties] = []
     var listUserAccountsCmdID: Int32 = -1
