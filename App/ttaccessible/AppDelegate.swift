@@ -137,6 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         handleLaunchTTFilesIfNeeded()
         processPendingTTFileURLsIfPossible()
         syncSparkleAutoCheckPreference()
+        scheduleLaunchUpdateCheck()
     }
 
     private func syncSparkleAutoCheckPreference() {
@@ -147,6 +148,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] enabled in
                 self?.updaterController.updater.automaticallyChecksForUpdates = enabled
             }
+    }
+
+    private func scheduleLaunchUpdateCheck() {
+        guard preferencesStore.preferences.autoCheckForUpdates else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.updaterController.updater.checkForUpdatesInBackground()
+        }
     }
 
     private func requestNotificationPermission() {
