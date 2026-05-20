@@ -446,8 +446,9 @@ extension TeamTalkConnectionController {
                 }
             }
             let now = CFAbsoluteTimeGetCurrent()
+            let autoAwayPollInterval = isAutoAwayActive ? 0.5 : 5.0
             if connectedRecord != nil,
-               now - lastAutoAwayCheckTime >= 5.0 {
+               now - lastAutoAwayCheckTime >= autoAwayPollInterval {
                 lastAutoAwayCheckTime = now
                 if updateAutoAwayIfNeededLocked(instance: instance) {
                     publishInvalidation = .all
@@ -825,7 +826,9 @@ extension TeamTalkConnectionController {
         teamTalkVirtualInputReady = false
         advancedMicrophoneTargetFormat = nil
         isAutoAwayActive = false
+        autoAwayActivationTime = nil
         autoAwayRestoreStatusMessage = ""
+        autoAwayPeakIdleSeconds = nil
     }
 
     // MARK: - Error helpers
