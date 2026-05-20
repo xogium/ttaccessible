@@ -4,12 +4,12 @@
         <title>ttaccessible</title>
         <item>
             <title>1.1.0</title>
-            <pubDate>Wed, 20 May 2026 18:30:29 +0200</pubDate>
+            <pubDate>Wed, 20 May 2026 18:46:22 +0200</pubDate>
             <link>https://github.com/math65/ttaccessible/releases/tag/v1.1.0</link>
             <sparkle:version>17</sparkle:version>
             <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/math65/ttaccessible/releases/download/v1.1.0/ttaccessible-1.1.0-17.zip" length="40718729" type="application/octet-stream" sparkle:edSignature="z3UCRy+cF3BXu9yw4bcTvu9H4WDiMtLQl/gG4p4ICgUbBRFZ5h7/4qGycTvS2BVlzbV3caThHEdCsQa7l7tBBg=="/>
+            <enclosure url="https://github.com/math65/ttaccessible/releases/download/v1.1.0/ttaccessible-1.1.0-17.zip" length="40718970" type="application/octet-stream" sparkle:edSignature="cW/++ohUv+UTXyjUjYOTuAkHwTHdXkhtl40ZFggiuxKvozjwUCChKixmeU5rdEyAuPR9No2d0T6HUccRu0GMCw=="/>
         </item>
     </channel>
 </rss>
