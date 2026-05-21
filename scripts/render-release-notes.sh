@@ -32,7 +32,7 @@ if [[ ! -f "$TEMPLATE" ]]; then
     exit 1
 fi
 
-TITLE="$(basename "${SRC%.md}")"
+TITLE="$(basename "${DST%.html}")"
 
 pandoc \
     --from=gfm \
