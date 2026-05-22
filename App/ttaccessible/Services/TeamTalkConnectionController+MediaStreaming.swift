@@ -67,6 +67,8 @@ extension TeamTalkConnectionController {
             }
 
             self.mediaStreamingActive = true
+            self.mediaStreamingStartedHistoryLogged = false
+            self.mediaStreamingSeekedWhilePaused = false
             self.mediaStreamingFileName = displayName
             self.mediaStreamingSecurityScopedURL = securityScopedURL
             self.mediaStreamingDurationMSec = 0
@@ -103,6 +105,8 @@ extension TeamTalkConnectionController {
         mediaStreamingSecurityScopedURL?.stopAccessingSecurityScopedResource()
         mediaStreamingSecurityScopedURL = nil
         mediaStreamingActive = false
+        mediaStreamingStartedHistoryLogged = false
+        mediaStreamingSeekedWhilePaused = false
         mediaStreamingFileName = nil
         mediaStreamingPaused = false
         mediaStreamingDurationMSec = 0
@@ -156,7 +160,16 @@ extension TeamTalkConnectionController {
         }
         self.mediaStreamingPaused = paused
         self.mediaStreamingElapsedSampleAt = Date()
-        var playback = self.makeMediaFilePlaybackLocked(offsetMSec: UInt32(TT_MEDIAPLAYBACK_OFFSET_IGNORE))
+        let offsetMSec: UInt32
+        if paused {
+            offsetMSec = UInt32(TT_MEDIAPLAYBACK_OFFSET_IGNORE)
+        } else if mediaStreamingSeekedWhilePaused {
+            offsetMSec = self.currentMediaStreamingElapsedMSecLocked()
+            mediaStreamingSeekedWhilePaused = false
+        } else {
+            offsetMSec = UInt32(TT_MEDIAPLAYBACK_OFFSET_IGNORE)
+        }
+        var playback = self.makeMediaFilePlaybackLocked(offsetMSec: offsetMSec)
         var videoCodec = VideoCodec()
         videoCodec.nCodec = NO_CODEC
         _ = TT_UpdateStreamingMediaFileToChannel(instance, &playback, &videoCodec)
@@ -174,6 +187,7 @@ extension TeamTalkConnectionController {
             }
             self.mediaStreamingElapsedMSec = clamped
             self.mediaStreamingElapsedSampleAt = Date()
+            self.mediaStreamingSeekedWhilePaused = self.mediaStreamingPaused
             var playback = self.makeMediaFilePlaybackLocked(offsetMSec: clamped)
             var videoCodec = VideoCodec()
             videoCodec.nCodec = NO_CODEC

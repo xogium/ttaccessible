@@ -113,9 +113,12 @@ final class TeamTalkConnectionController {
     var recordingFolder: URL?
     var recordingFormat: AudioFileFormat = AFF_WAVE_FORMAT
     var mediaStreamingActive = false
+    var mediaStreamingStartedHistoryLogged = false
     var mediaStreamingFileName: String?
     var mediaStreamingSecurityScopedURL: URL?
     var mediaStreamingPaused = false
+    /// Set when the user seeks while paused; resume must re-send that offset because the SDK may not apply seeks until playback.
+    var mediaStreamingSeekedWhilePaused = false
     var mediaStreamingDurationMSec: UInt32 = 0
     var mediaStreamingElapsedMSec: UInt32 = 0
     var mediaStreamingElapsedSampleAt: Date?
