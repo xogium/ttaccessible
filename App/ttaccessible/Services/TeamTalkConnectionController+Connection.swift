@@ -551,9 +551,8 @@ extension TeamTalkConnectionController {
                     publishInvalidation.insert(.activeTransfers)
                 }
             case CLIENTEVENT_USER_STATECHANGE:
-                if let record = connectedRecord {
+                if connectedRecord != nil {
                     publishAudioRuntimeUpdateLocked(instance: instance)
-                    publishSessionLocked(instance: instance, record: record, invalidation: .rootTree)
                 }
             case CLIENTEVENT_USER_MEDIAFILE_VIDEO:
                 if connectedRecord != nil {

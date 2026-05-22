@@ -593,6 +593,7 @@ final class ConnectedServerViewController: NSViewController {
         updateAudioControls()
         reloadVisibleUserRows(for: changedUserIDs)
         updateMenuState()
+        updateVideoSelectionFromTree()
     }
 
     func applyVideoDisplay(_ state: VideoDisplayState) {
@@ -708,7 +709,8 @@ final class ConnectedServerViewController: NSViewController {
                 }
                 guard user.isTalking != update.isTalking
                     || user.isMuted != update.isMuted
-                    || user.isMediaFileMuted != update.isMediaFileMuted else {
+                    || user.isMediaFileMuted != update.isMediaFileMuted
+                    || user.isStreamingMediaFileVideo != update.isStreamingMediaFileVideo else {
                     return user
                 }
                 changedUserIDs.insert(user.id)
@@ -726,7 +728,7 @@ final class ConnectedServerViewController: NSViewController {
                     isTalking: update.isTalking,
                     isMuted: update.isMuted,
                     isMediaFileMuted: update.isMediaFileMuted,
-                    isStreamingMediaFileVideo: user.isStreamingMediaFileVideo,
+                    isStreamingMediaFileVideo: update.isStreamingMediaFileVideo,
                     isAway: user.isAway,
                     isQuestion: user.isQuestion,
                     ipAddress: user.ipAddress,

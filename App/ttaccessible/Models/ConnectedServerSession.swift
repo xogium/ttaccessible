@@ -171,6 +171,7 @@ struct ConnectedUserAudioState: Equatable {
     let isTalking: Bool
     let isMuted: Bool
     let isMediaFileMuted: Bool
+    let isStreamingMediaFileVideo: Bool
 }
 
 struct ConnectedServerAudioRuntimeUpdate: Equatable {

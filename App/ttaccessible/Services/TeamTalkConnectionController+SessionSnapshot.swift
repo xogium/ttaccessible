@@ -29,13 +29,15 @@ extension TeamTalkConnectionController {
                         : (user.uUserState & UInt32(USERSTATE_VOICE.rawValue)) != 0
                     let isMuted = (user.uUserState & UInt32(USERSTATE_MUTE_VOICE.rawValue)) != 0
                     let isMediaFileMuted = (user.uUserState & UInt32(USERSTATE_MUTE_MEDIAFILE.rawValue)) != 0
+                    let isStreamingMediaFileVideo = (user.uUserState & UInt32(USERSTATE_MEDIAFILE_VIDEO.rawValue)) != 0
                     return (
                         user.nUserID,
                         ConnectedUserAudioState(
                             userID: user.nUserID,
                             isTalking: isTalking,
                             isMuted: isMuted,
-                            isMediaFileMuted: isMediaFileMuted
+                            isMediaFileMuted: isMediaFileMuted,
+                            isStreamingMediaFileVideo: isStreamingMediaFileVideo
                         )
                     )
                 }
