@@ -14,6 +14,7 @@ enum MediaStreamCompatibility {
         "h264",
         "mjpeg",
         "jpeg",
+        "mpeg1video",
         "mpeg4"
     ]
 
@@ -97,6 +98,8 @@ enum MediaStreamCompatibility {
         switch codec {
         case "mjpeg", "jpeg":
             return "MJPEG"
+        case "mpeg1video":
+            return "MPEG-1"
         case "mpeg4":
             return "MPEG-4"
         case "h264":
