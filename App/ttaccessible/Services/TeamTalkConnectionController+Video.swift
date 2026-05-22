@@ -169,6 +169,9 @@ extension TeamTalkConnectionController {
         return displayName(for: user)
     }
 
+    /// Copies frame bytes so the buffer can be released immediately after TT_ReleaseUserMediaVideoFrame.
+    /// At 1280×720 RGBA this is ~3.7 MB per frame; if profiling shows pressure, consider holding
+    /// the acquired frame until after render instead (TT_Acquire / TT_Release pattern).
     func copyVideoFramePayload(from frame: VideoFrame) -> VideoFramePayload? {
         let width = Int(frame.nWidth)
         let height = Int(frame.nHeight)
