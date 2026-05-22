@@ -10,7 +10,7 @@ import AppKit
 /// - Page Up / Page Down move by `pageStep` (defaults to 10% of the range).
 ///
 /// Arrow keys keep their native NSSlider behavior (single step).
-final class AccessibleSlider: NSSlider {
+class AccessibleSlider: NSSlider {
     /// Step applied by Page Up / Page Down. When nil, falls back to
     /// `(maxValue - minValue) / 10`, with a floor of 1.
     var pageStep: Double?
@@ -47,7 +47,7 @@ final class AccessibleSlider: NSSlider {
         return max(1, (maxValue - minValue) / 10)
     }
 
-    private func setValueAndFire(_ newValue: Double) {
+    func setValueAndFire(_ newValue: Double) {
         let clamped = min(max(newValue, minValue), maxValue)
         guard clamped != doubleValue else { return }
         doubleValue = clamped
