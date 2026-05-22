@@ -576,8 +576,9 @@ extension TeamTalkConnectionController {
                         if info.uDurationMSec > 0 {
                             mediaStreamingDurationMSec = info.uDurationMSec
                         }
-                        if let fileName = mediaStreamingFileName {
+                        if let fileName = mediaStreamingFileName, !mediaStreamingStartedHistoryLogged {
                             appendMediaStreamingStartedHistoryLocked(fileName: fileName)
+                            mediaStreamingStartedHistoryLogged = true
                             publishInvalidation.insert(.history)
                         }
                         updateMediaStreamingProgressLocked(elapsedMSec: info.uElapsedMSec, durationMSec: info.uDurationMSec)
@@ -800,6 +801,8 @@ extension TeamTalkConnectionController {
         mediaStreamingSecurityScopedURL = nil
         mediaStreamingActive = false
         mediaStreamingPath = nil
+        mediaStreamingStartedHistoryLogged = false
+        mediaStreamingSeekedWhilePaused = false
         mediaStreamingFileName = nil
         mediaStreamingRestartInFlight = false
         mediaStreamingUserPauseIntent = false

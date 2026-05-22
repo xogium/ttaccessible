@@ -1265,7 +1265,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.async {
                     switch result {
                     case .success:
-                        self?.announceWithVoiceOver(L10n.format("mediaStream.announced.started", url.lastPathComponent))
+                        break
                     case .failure(let error):
                         self?.announceWithVoiceOver(L10n.text("mediaStream.announced.error"))
                         let alert = NSAlert(error: error)
@@ -1308,7 +1308,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.async {
                     switch result {
                     case .success:
-                        self?.announceWithVoiceOver(L10n.text("mediaStream.announced.startedURL"))
+                        break
                     case .failure(let error):
                         self?.announceWithVoiceOver(L10n.text("mediaStream.announced.error"))
                         let alert = NSAlert(error: error)

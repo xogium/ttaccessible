@@ -102,6 +102,8 @@ extension TeamTalkConnectionController {
 
                 self.mediaStreamingActive = true
                 self.mediaStreamingPath = resolved.path
+                self.mediaStreamingStartedHistoryLogged = false
+                self.mediaStreamingSeekedWhilePaused = false
                 self.mediaStreamingFileName = displayName
                 self.mediaStreamingSecurityScopedURL = securityScopedURL
                 self.mediaStreamingElapsedMSec = 0
@@ -163,6 +165,8 @@ extension TeamTalkConnectionController {
         mediaStreamingSecurityScopedURL = nil
         mediaStreamingActive = false
         mediaStreamingPath = nil
+        mediaStreamingStartedHistoryLogged = false
+        mediaStreamingSeekedWhilePaused = false
         mediaStreamingFileName = nil
         mediaStreamingRestartInFlight = false
         mediaStreamingUserPauseIntent = false
@@ -231,7 +235,17 @@ extension TeamTalkConnectionController {
         mediaStreamingElapsedSampleAt = paused ? nil : Date()
         mediaStreamingUserPauseIntent = paused
 
-        var playback = makeMediaFilePlaybackLocked(offsetMSec: UInt32(TT_MEDIAPLAYBACK_OFFSET_IGNORE))
+        let playbackOffsetMSec: UInt32
+        if paused {
+            playbackOffsetMSec = UInt32(TT_MEDIAPLAYBACK_OFFSET_IGNORE)
+        } else if mediaStreamingSeekedWhilePaused {
+            playbackOffsetMSec = offsetMSec
+            mediaStreamingSeekedWhilePaused = false
+        } else {
+            playbackOffsetMSec = UInt32(TT_MEDIAPLAYBACK_OFFSET_IGNORE)
+        }
+
+        var playback = makeMediaFilePlaybackLocked(offsetMSec: playbackOffsetMSec)
         guard applyMediaStreamingUpdateLocked(instance: instance, playback: &playback) else {
             mediaStreamingPaused = previousPaused
             mediaStreamingUserPauseIntent = previousPauseIntent
@@ -261,6 +275,7 @@ extension TeamTalkConnectionController {
                 }
                 self.mediaStreamingElapsedMSec = clamped
                 self.mediaStreamingElapsedSampleAt = self.mediaStreamingPaused ? nil : Date()
+                self.mediaStreamingSeekedWhilePaused = self.mediaStreamingPaused
             }
             self.mediaStreamingFinalizeSuppressedUntil = Date().addingTimeInterval(1.0)
             self.publishMediaStreamingProgressLocked()

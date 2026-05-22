@@ -18,8 +18,7 @@ final class MediaStreamingPlayerViewController: NSViewController {
     weak var actions: MediaStreamingPlayerActions?
 
     private let fileNameLabel = NSTextField(labelWithString: "")
-    private let timeLabel = NSTextField(labelWithString: "00:00 / 00:00")
-    private let positionSlider = AccessibleSlider()
+    private let positionControl = MediaPlaybackPositionControl()
     private let playPauseButton = NSButton()
     private let stopButton = NSButton()
     private let broadcastGainSlider = AccessibleSlider()
@@ -27,7 +26,6 @@ final class MediaStreamingPlayerViewController: NSViewController {
 
     private var displayTimer: Timer?
     private var lastProgress = MediaStreamingProgress.inactive
-    private var isUserDraggingPosition = false
     private var suppressGainAction = false
 
     override func loadView() {
@@ -50,10 +48,10 @@ final class MediaStreamingPlayerViewController: NSViewController {
             : L10n.text("mediaPlayer.pause")
         playPauseButton.setAccessibilityLabel(playPauseButton.title)
 
-        if !isUserDraggingPosition {
-            positionSlider.maxValue = max(1, Double(progress.durationMSec))
-            positionSlider.doubleValue = Double(progress.elapsedMSec)
-            positionSlider.isEnabled = progress.durationMSec > 0
+        positionControl.isPlaybackActive = progress.isActive && !progress.isPaused
+
+        if !positionControl.isAdjustingPosition {
+            applyPositionControl(announceAccessibility: false)
         }
 
         suppressGainAction = true
@@ -61,8 +59,6 @@ final class MediaStreamingPlayerViewController: NSViewController {
         suppressGainAction = false
         broadcastGainValueLabel.stringValue = "\(progress.broadcastGainPercent)%"
         broadcastGainSlider.setAccessibilityValueDescription("\(progress.broadcastGainPercent)%")
-
-        refreshTimeLabel()
     }
 
     override var acceptsFirstResponder: Bool { true }
@@ -95,6 +91,7 @@ final class MediaStreamingPlayerViewController: NSViewController {
         let durationMS = Int(lastProgress.durationMSec)
         let newMS = max(0, min(currentMS + seconds * 1000, durationMS - 1))
         actions?.mediaStreamingPlayerDidSeek(toMSec: UInt32(newMS))
+        applyPositionControl(elapsedMSec: UInt32(newMS), announceAccessibility: true)
     }
 
     private func adjustBroadcastGain(delta: Int) {
@@ -111,17 +108,6 @@ final class MediaStreamingPlayerViewController: NSViewController {
         actions?.mediaStreamingPlayerDidStop()
     }
 
-    @objc private func positionSliderAction(_ sender: NSSlider) {
-        let isDragging = NSApp.currentEvent?.type == .leftMouseDragged
-        if isDragging {
-            isUserDraggingPosition = true
-            updatePositionLabelPreview(forSliderValue: sender.doubleValue)
-            return
-        }
-        isUserDraggingPosition = false
-        actions?.mediaStreamingPlayerDidSeek(toMSec: UInt32(max(0, sender.doubleValue)))
-    }
-
     @objc private func broadcastGainSliderAction(_ sender: NSSlider) {
         guard !suppressGainAction else { return }
         actions?.mediaStreamingPlayerDidChangeBroadcastGainPercent(Int(sender.doubleValue.rounded()))
@@ -131,21 +117,27 @@ final class MediaStreamingPlayerViewController: NSViewController {
         guard displayTimer == nil else { return }
         displayTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self, self.lastProgress.isActive else { return }
-                self.refreshTimeLabel()
-                self.refreshPositionSliderIfNeeded()
+                self?.refreshPositionControlIfNeeded()
             }
         }
     }
 
-    private func refreshTimeLabel() {
-        let elapsed = currentEstimatedElapsedMSec()
-        timeLabel.stringValue = "\(formatMSec(elapsed)) / \(formatMSec(lastProgress.durationMSec))"
+    private func refreshPositionControlIfNeeded() {
+        guard lastProgress.isActive, lastProgress.durationMSec > 0, !positionControl.isAdjustingPosition else { return }
+        applyPositionControl(announceAccessibility: false)
     }
 
-    private func refreshPositionSliderIfNeeded() {
-        guard lastProgress.isActive, lastProgress.durationMSec > 0, !isUserDraggingPosition else { return }
-        positionSlider.doubleValue = Double(currentEstimatedElapsedMSec())
+    private func applyPositionControl(
+        elapsedMSec: UInt32? = nil,
+        announceAccessibility: Bool = false
+    ) {
+        let elapsed = elapsedMSec ?? currentEstimatedElapsedMSec()
+        positionControl.apply(
+            elapsedMSec: elapsed,
+            durationMSec: lastProgress.durationMSec,
+            enabled: lastProgress.durationMSec > 0,
+            announceAccessibility: announceAccessibility
+        )
     }
 
     private func currentEstimatedElapsedMSec() -> UInt32 {
@@ -161,29 +153,15 @@ final class MediaStreamingPlayerViewController: NSViewController {
         return UInt32(capped)
     }
 
-    private func updatePositionLabelPreview(forSliderValue value: Double) {
-        timeLabel.stringValue = "\(formatMSec(UInt32(max(0, value)))) / \(formatMSec(lastProgress.durationMSec))"
-    }
-
-    private func formatMSec(_ msec: UInt32) -> String {
-        let totalSec = Int(msec / 1000)
-        return String(format: "%02d:%02d", totalSec / 60, totalSec % 60)
-    }
-
     private func configureUI() {
         view.isHidden = true
 
         fileNameLabel.lineBreakMode = .byTruncatingMiddle
         fileNameLabel.maximumNumberOfLines = 1
 
-        timeLabel.font = .monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular)
-        timeLabel.textColor = .secondaryLabelColor
-
-        positionSlider.target = self
-        positionSlider.action = #selector(positionSliderAction(_:))
-        positionSlider.isContinuous = true
-        positionSlider.pageStep = 10_000
-        positionSlider.setAccessibilityLabel(L10n.text("mediaPlayer.position.label"))
+        positionControl.onSeek = { [weak self] offsetMSec in
+            self?.actions?.mediaStreamingPlayerDidSeek(toMSec: offsetMSec)
+        }
 
         playPauseButton.bezelStyle = .rounded
         playPauseButton.target = self
@@ -203,7 +181,7 @@ final class MediaStreamingPlayerViewController: NSViewController {
 
         broadcastGainValueLabel.font = .monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular)
 
-        let controlsRow = NSStackView(views: [playPauseButton, stopButton, timeLabel])
+        let controlsRow = NSStackView(views: [playPauseButton, stopButton])
         controlsRow.orientation = .horizontal
         controlsRow.spacing = 8
 
@@ -212,7 +190,7 @@ final class MediaStreamingPlayerViewController: NSViewController {
         gainRow.spacing = 8
         broadcastGainSlider.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
-        let stack = NSStackView(views: [fileNameLabel, positionSlider, controlsRow, gainRow])
+        let stack = NSStackView(views: [fileNameLabel, positionControl, controlsRow, gainRow])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 6
@@ -224,7 +202,7 @@ final class MediaStreamingPlayerViewController: NSViewController {
             stack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             stack.topAnchor.constraint(equalTo: view.topAnchor),
             stack.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            positionSlider.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            positionControl.widthAnchor.constraint(equalTo: stack.widthAnchor),
             gainRow.widthAnchor.constraint(equalTo: stack.widthAnchor)
         ])
 
