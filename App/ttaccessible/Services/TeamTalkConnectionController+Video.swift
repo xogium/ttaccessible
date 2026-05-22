@@ -10,6 +10,8 @@ struct MediaFileProbe: Equatable {
     let hasVideo: Bool
     let durationMSec: UInt32
     let sdkSupported: Bool
+    let videoWidth: Int
+    let videoHeight: Int
 }
 
 extension TeamTalkConnectionController {
@@ -27,7 +29,9 @@ extension TeamTalkConnectionController {
             hasAudio: hasAudio,
             hasVideo: hasVideo,
             durationMSec: info.uDurationMSec,
-            sdkSupported: supported
+            sdkSupported: supported,
+            videoWidth: hasVideo ? Int(info.videoFmt.nWidth) : 0,
+            videoHeight: hasVideo ? Int(info.videoFmt.nHeight) : 0
         )
     }
 
@@ -162,16 +166,9 @@ extension TeamTalkConnectionController {
 
     func cleanupVideoLocked() {
         mediaStreamingHasVideo = false
-        removeTranscodedMediaFileLocked()
         activeVideoDisplayUserID = 0
         usersWithPendingMediaVideoFrame.removeAll()
         publishVideoDisplayStateLocked(clearFrame: true)
     }
 
-    func removeTranscodedMediaFileLocked() {
-        if let url = mediaStreamingTranscodedURL {
-            try? FileManager.default.removeItem(at: url)
-        }
-        mediaStreamingTranscodedURL = nil
-    }
 }

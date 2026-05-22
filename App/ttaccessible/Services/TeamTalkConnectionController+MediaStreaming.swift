@@ -35,24 +35,46 @@ extension TeamTalkConnectionController {
         sourceURL: URL?,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
-        queue.async { [weak self] in
-            guard let self,
-                  let instance = self.instance,
-                  let record = self.connectedRecord else {
+        let fileURL = sourceURL ?? URL(fileURLWithPath: path)
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else {
                 securityScopedURL?.stopAccessingSecurityScopedResource()
-                DispatchQueue.main.async {
-                    completion(.failure(TeamTalkConnectionError.connectionFailed))
-                }
                 return
             }
 
+            let preflightMessage = fileURL.isFileURL
+                ? MediaStreamCompatibility.preflightUnsupportedMessage(sourceURL: fileURL)
+                : nil
 
-            if self.mediaStreamingActive {
-                self.stopStreamingMediaFileLocked(instance: instance)
-            }
+            self.queue.async { [weak self] in
+                guard let self else {
+                    securityScopedURL?.stopAccessingSecurityScopedResource()
+                    return
+                }
 
-            do {
-                let resolved = try self.resolveStreamingPathLocked(originalPath: path, sourceURL: sourceURL)
+                guard let instance = self.instance, let record = self.connectedRecord else {
+                    securityScopedURL?.stopAccessingSecurityScopedResource()
+                    self.healStaleSessionIfNeededLocked()
+                    self.finishOnMain(.failure(self.sessionUnavailableErrorLocked()), completion: completion)
+                    return
+                }
+
+                if let preflightMessage {
+                    securityScopedURL?.stopAccessingSecurityScopedResource()
+                    self.finishOnMain(
+                        .failure(TeamTalkConnectionError.internalError(preflightMessage)),
+                        completion: completion
+                    )
+                    return
+                }
+
+                if self.mediaStreamingActive {
+                    self.stopStreamingMediaFileLocked(instance: instance)
+                }
+
+                do {
+                    let resolved = try self.resolveStreamingPathLocked(originalPath: path, sourceURL: sourceURL)
                 self.mediaStreamingPaused = false
                 self.mediaStreamingBroadcastGainLevel = INT32(SOUND_GAIN_DEFAULT.rawValue)
                 self.mediaStreamingHasVideo = resolved.probe.hasVideo
@@ -66,11 +88,11 @@ extension TeamTalkConnectionController {
                 }
 
                 guard started else {
-                    self.removeTranscodedMediaFileLocked()
                     securityScopedURL?.stopAccessingSecurityScopedResource()
-                    DispatchQueue.main.async {
-                        completion(.failure(TeamTalkConnectionError.internalError(L10n.text("mediaStream.error.startFailed"))))
-                    }
+                    self.finishOnMain(
+                        .failure(TeamTalkConnectionError.internalError(L10n.text("mediaStream.error.startFailed"))),
+                        completion: completion
+                    )
                     return
                 }
 
@@ -93,13 +115,10 @@ extension TeamTalkConnectionController {
                 self.publishSessionLocked(instance: instance, record: record, invalidation: .audio)
                 self.publishMediaStreamingProgressLocked()
                 self.publishVideoDisplayStateLocked()
-                DispatchQueue.main.async {
-                    completion(.success(()))
-                }
-            } catch {
-                securityScopedURL?.stopAccessingSecurityScopedResource()
-                DispatchQueue.main.async {
-                    completion(.failure(error))
+                    self.finishOnMain(.success(()), completion: completion)
+                } catch {
+                    securityScopedURL?.stopAccessingSecurityScopedResource()
+                    self.finishOnMain(.failure(error), completion: completion)
                 }
             }
         }
@@ -111,26 +130,13 @@ extension TeamTalkConnectionController {
     }
 
     private func resolveStreamingPathLocked(originalPath: String, sourceURL: URL?) throws -> ResolvedStreamingPath {
-        removeTranscodedMediaFileLocked()
+        let probe = probeMediaFileLocked(path: originalPath)
 
-        var probe = probeMediaFileLocked(path: originalPath)
-        if probe.sdkSupported {
-            return ResolvedStreamingPath(path: originalPath, probe: probe)
+        if let message = MediaStreamCompatibility.unsupportedMessageAfterSDKProbe(probe: probe) {
+            throw TeamTalkConnectionError.internalError(message)
         }
 
-        let fileURL = sourceURL ?? URL(fileURLWithPath: originalPath)
-        guard fileURL.isFileURL else {
-            throw TeamTalkConnectionError.internalError(L10n.text("mediaStream.error.unsupportedFormat"))
-        }
-
-        let transcoded = try MediaTranscodeService.transcodeForTeamTalk(sourceURL: fileURL)
-        mediaStreamingTranscodedURL = transcoded
-        probe = probeMediaFileLocked(path: transcoded.path)
-        guard probe.sdkSupported else {
-            removeTranscodedMediaFileLocked()
-            throw TeamTalkConnectionError.internalError(L10n.text("mediaStream.error.unsupportedFormat"))
-        }
-        return ResolvedStreamingPath(path: transcoded.path, probe: probe)
+        return ResolvedStreamingPath(path: originalPath, probe: probe)
     }
 
     func stopStreamingMediaFile() {
@@ -167,7 +173,6 @@ extension TeamTalkConnectionController {
         mediaStreamingHasVideo = false
         mediaStreamingActiveVideoCodec = VideoCodec()
         mediaStreamingFinalizeSuppressedUntil = nil
-        removeTranscodedMediaFileLocked()
         let myID = TT_GetMyUserID(instance)
         if myID > 0, activeVideoDisplayUserID == myID {
             activeVideoDisplayUserID = 0

@@ -811,7 +811,6 @@ extension TeamTalkConnectionController {
         mediaStreamingHasVideo = false
         mediaStreamingActiveVideoCodec = VideoCodec()
         mediaStreamingFinalizeSuppressedUntil = nil
-        mediaStreamingTranscodedURL = nil
         activeVideoDisplayUserID = 0
         usersWithPendingMediaVideoFrame.removeAll()
         publishMediaStreamingProgressLocked()

@@ -128,7 +128,6 @@ final class TeamTalkConnectionController {
     var mediaStreamingHasVideo = false
     var mediaStreamingActiveVideoCodec = VideoCodec()
     var mediaStreamingFinalizeSuppressedUntil: Date?
-    var mediaStreamingTranscodedURL: URL?
     var activeVideoDisplayUserID: Int32 = 0
     var usersWithPendingMediaVideoFrame = Set<Int32>()
     var teamTalkVirtualInputReady = false
