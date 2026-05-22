@@ -40,6 +40,7 @@ final class VideoFrameView: NSView {
         guard payload.pixels.count >= bytesPerRow * height else { return }
 
         guard let provider = CGDataProvider(data: payload.pixels as CFData) else { return }
+        // TeamTalk SDK decodes WebM VP8 media frames as 32-bit BGRA (noneSkipFirst).
         let bitmapInfo = CGBitmapInfo(rawValue:
             CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.noneSkipFirst.rawValue
         )
