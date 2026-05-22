@@ -54,6 +54,7 @@ final class MediaPlaybackPositionControl: NSView {
             self.focusObserver = nil
         }
         guard newWindow != nil else { return }
+        // Private AppKit notification (not in public API); used to detect VoiceOver focus on this control.
         focusObserver = NotificationCenter.default.addObserver(
             forName: Notification.Name("AXFocusedUIElementChanged"),
             object: nil,
