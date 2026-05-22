@@ -132,6 +132,8 @@ final class TeamTalkConnectionController {
     var mediaStreamingActiveVideoCodec = VideoCodec()
     var mediaStreamingFinalizeSuppressedUntil: Date?
     var activeVideoDisplayUserID: Int32 = 0
+    var lastPublishedVideoFrame: VideoFramePayload?
+    var lastPublishedVideoFrameUserID: Int32 = 0
     var usersWithPendingMediaVideoFrame = Set<Int32>()
     var teamTalkVirtualInputReady = false
     var advancedMicrophoneTargetFormat: AdvancedMicrophoneAudioTargetFormat?

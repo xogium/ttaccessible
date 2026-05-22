@@ -116,6 +116,8 @@ extension TeamTalkConnectionController {
     func publishVideoFrameLocked(userID: Int32, framePtr: UnsafePointer<VideoFrame>) {
         let frame = framePtr.pointee
         let payload = copyVideoFramePayload(from: frame)
+        lastPublishedVideoFrame = payload
+        lastPublishedVideoFrameUserID = userID
         let displayName = displayNameForVideoUserLocked(userID: userID)
         let state = VideoDisplayState(
             userID: userID,
@@ -131,16 +133,28 @@ extension TeamTalkConnectionController {
     func publishVideoDisplayStateLocked(clearFrame: Bool = false) {
         let userID = activeVideoDisplayUserID
         guard userID > 0 else {
+            lastPublishedVideoFrame = nil
+            lastPublishedVideoFrameUserID = 0
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.delegate?.teamTalkConnectionController(self, didUpdateVideoDisplay: .empty)
             }
             return
         }
+        let frame: VideoFramePayload?
+        if clearFrame {
+            lastPublishedVideoFrame = nil
+            lastPublishedVideoFrameUserID = 0
+            frame = nil
+        } else if lastPublishedVideoFrameUserID == userID {
+            frame = lastPublishedVideoFrame
+        } else {
+            frame = nil
+        }
         let state = VideoDisplayState(
             userID: userID,
             displayName: displayNameForVideoUserLocked(userID: userID),
-            frame: clearFrame ? nil : nil
+            frame: frame
         )
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
