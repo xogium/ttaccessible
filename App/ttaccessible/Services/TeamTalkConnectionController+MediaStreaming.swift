@@ -107,7 +107,7 @@ extension TeamTalkConnectionController {
                 self.mediaStreamingFileName = displayName
                 self.mediaStreamingSecurityScopedURL = securityScopedURL
                 self.mediaStreamingElapsedMSec = 0
-                self.mediaStreamingElapsedSampleAt = nil
+                self.mediaStreamingElapsedSampleAt = Date()
 
                 let myID = TT_GetMyUserID(instance)
                 if resolved.probe.hasVideo, myID > 0 {

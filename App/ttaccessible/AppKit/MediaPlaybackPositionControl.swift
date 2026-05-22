@@ -80,8 +80,13 @@ final class MediaPlaybackPositionControl: NSView {
         setAccessibilityMinValue(0)
         setAccessibilityMaxValue(max(1, Double(durationMSec)))
 
-        guard shouldPublishAccessibilityUpdates else { return }
-        publishAccessibilityValue(timeText, announce: announceAccessibility)
+        if shouldPublishAccessibilityUpdates {
+            publishAccessibilityValue(timeText, announce: announceAccessibility)
+        } else if isPlaybackActive {
+            // Keep the thumb and time label moving without posting .valueChanged (VoiceOver spam).
+            setAccessibilityValue(timeText)
+            setAccessibilityValueDescription(timeText)
+        }
     }
 
     func beginUserDrag() {
@@ -177,6 +182,8 @@ final class MediaPlaybackPositionControl: NSView {
         setAccessibilityElement(true)
         setAccessibilityRole(.slider)
         setAccessibilityLabel(L10n.text("mediaPlayer.position.label"))
+        setAccessibilityValue("00:00 / 00:00")
+        setAccessibilityValueDescription("00:00 / 00:00")
     }
 
     @objc private func sliderChanged(_ sender: NSSlider) {
@@ -222,6 +229,7 @@ final class MediaPlaybackPositionControl: NSView {
         guard hasVoiceOverFocus else { return }
         let elapsed = UInt32(max(0, slider.doubleValue))
         let timeText = Self.formatTime(elapsedMSec: elapsed, durationMSec: durationMSec)
+        // Announce once on focus; timer-driven applies refresh silently while focused during playback.
         publishAccessibilityValue(timeText, announce: true)
     }
 
