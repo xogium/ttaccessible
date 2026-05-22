@@ -229,6 +229,8 @@ extension TeamTalkConnectionController {
         let offsetMSec = currentMediaStreamingElapsedMSecLocked()
         let previousPaused = mediaStreamingPaused
         let previousPauseIntent = mediaStreamingUserPauseIntent
+        let previousElapsedMSec = mediaStreamingElapsedMSec
+        let previousElapsedSampleAt = mediaStreamingElapsedSampleAt
 
         mediaStreamingPaused = paused
         mediaStreamingElapsedMSec = offsetMSec
@@ -249,7 +251,8 @@ extension TeamTalkConnectionController {
         guard applyMediaStreamingUpdateLocked(instance: instance, playback: &playback) else {
             mediaStreamingPaused = previousPaused
             mediaStreamingUserPauseIntent = previousPauseIntent
-            mediaStreamingElapsedSampleAt = previousPaused ? nil : Date()
+            mediaStreamingElapsedMSec = previousElapsedMSec
+            mediaStreamingElapsedSampleAt = previousElapsedSampleAt
             AudioLogger.log("Media stream: pause/resume update failed paused=%d", paused ? 1 : 0)
             return
         }
