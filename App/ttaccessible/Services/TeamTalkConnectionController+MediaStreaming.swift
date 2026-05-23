@@ -177,6 +177,8 @@ extension TeamTalkConnectionController {
         mediaStreamingHasVideo = false
         mediaStreamingActiveVideoCodec = VideoCodec()
         mediaStreamingFinalizeSuppressedUntil = nil
+        mediaStreamingResumeAnchorMSec = nil
+        mediaStreamingResumeAnchorUntil = nil
         let myID = TT_GetMyUserID(instance)
         if myID > 0, activeVideoDisplayUserID == myID {
             activeVideoDisplayUserID = 0
@@ -237,17 +239,21 @@ extension TeamTalkConnectionController {
         mediaStreamingElapsedSampleAt = paused ? nil : Date()
         mediaStreamingUserPauseIntent = paused
 
-        let playbackOffsetMSec: UInt32
-        if paused {
-            playbackOffsetMSec = UInt32(TT_MEDIAPLAYBACK_OFFSET_IGNORE)
-        } else if mediaStreamingSeekedWhilePaused {
-            playbackOffsetMSec = offsetMSec
+        if !paused, mediaStreamingSeekedWhilePaused {
             mediaStreamingSeekedWhilePaused = false
-        } else {
-            playbackOffsetMSec = UInt32(TT_MEDIAPLAYBACK_OFFSET_IGNORE)
+            guard restartMediaStreamLocked(instance: instance, offsetMSec: offsetMSec, paused: false) else {
+                mediaStreamingPaused = previousPaused
+                mediaStreamingUserPauseIntent = previousPauseIntent
+                mediaStreamingElapsedMSec = previousElapsedMSec
+                mediaStreamingElapsedSampleAt = previousElapsedSampleAt
+                AudioLogger.log("Media stream: resume-after-seek restart failed at %u ms", offsetMSec)
+                return
+            }
+            publishMediaStreamingProgressLocked()
+            return
         }
 
-        var playback = makeMediaFilePlaybackLocked(offsetMSec: playbackOffsetMSec)
+        var playback = makeMediaFilePlaybackLocked(offsetMSec: UInt32(TT_MEDIAPLAYBACK_OFFSET_IGNORE))
         guard applyMediaStreamingUpdateLocked(instance: instance, playback: &playback) else {
             mediaStreamingPaused = previousPaused
             mediaStreamingUserPauseIntent = previousPauseIntent
@@ -263,23 +269,12 @@ extension TeamTalkConnectionController {
         queue.async { [weak self] in
             guard let self, let instance = self.instance, self.mediaStreamingActive else { return }
             let clamped = self.clampedMediaStreamOffsetMSec(offsetMSec)
-            if self.mediaStreamingHasVideo {
-                guard self.restartMediaStreamLocked(instance: instance, offsetMSec: clamped, paused: self.mediaStreamingPaused) else {
-                    AudioLogger.log("Media stream: seek restart failed at %u ms", clamped)
-                    self.publishMediaStreamingProgressLocked()
-                    return
-                }
-            } else {
-                var playback = self.makeMediaFilePlaybackLocked(offsetMSec: clamped)
-                guard self.applyMediaStreamingUpdateLocked(instance: instance, playback: &playback) else {
-                    AudioLogger.log("Media stream: seek update failed at %u ms", clamped)
-                    self.publishMediaStreamingProgressLocked()
-                    return
-                }
-                self.mediaStreamingElapsedMSec = clamped
-                self.mediaStreamingElapsedSampleAt = self.mediaStreamingPaused ? nil : Date()
-                self.mediaStreamingSeekedWhilePaused = self.mediaStreamingPaused
+            guard self.restartMediaStreamLocked(instance: instance, offsetMSec: clamped, paused: self.mediaStreamingPaused) else {
+                AudioLogger.log("Media stream: seek restart failed at %u ms", clamped)
+                self.publishMediaStreamingProgressLocked()
+                return
             }
+            self.mediaStreamingSeekedWhilePaused = self.mediaStreamingPaused
             self.mediaStreamingFinalizeSuppressedUntil = Date().addingTimeInterval(1.0)
             self.publishMediaStreamingProgressLocked()
         }
@@ -313,7 +308,7 @@ extension TeamTalkConnectionController {
         return info.uElapsedMSec + 2_000 < mediaStreamingDurationMSec
     }
 
-    /// Stop and restart channel media streaming (used for seek on video files where TT_Update is unreliable).
+    /// Stop and restart channel media streaming (TT_Update seek/resume is unreliable for media files).
     @discardableResult
     private func restartMediaStreamLocked(
         instance: UnsafeMutableRawPointer,
@@ -340,6 +335,10 @@ extension TeamTalkConnectionController {
         mediaStreamingPaused = paused
         mediaStreamingElapsedSampleAt = paused ? nil : Date()
         mediaStreamingFinalizeSuppressedUntil = Date().addingTimeInterval(1.0)
+        if !paused {
+            mediaStreamingResumeAnchorMSec = offsetMSec
+            mediaStreamingResumeAnchorUntil = Date().addingTimeInterval(2.0)
+        }
         return true
     }
 
@@ -382,6 +381,29 @@ extension TeamTalkConnectionController {
     }
 
     func updateMediaStreamingProgressLocked(elapsedMSec: UInt32, durationMSec: UInt32) {
+        if mediaStreamingSeekedWhilePaused, mediaStreamingPaused {
+            if durationMSec > 0 {
+                mediaStreamingDurationMSec = durationMSec
+            }
+            publishMediaStreamingProgressLocked()
+            return
+        }
+        if let anchorMSec = mediaStreamingResumeAnchorMSec,
+           let anchorUntil = mediaStreamingResumeAnchorUntil,
+           Date() < anchorUntil,
+           elapsedMSec + 2_000 < anchorMSec {
+            if durationMSec > 0 {
+                mediaStreamingDurationMSec = durationMSec
+            }
+            publishMediaStreamingProgressLocked()
+            return
+        }
+        if mediaStreamingResumeAnchorMSec != nil,
+           let anchorMSec = mediaStreamingResumeAnchorMSec,
+           elapsedMSec + 500 >= anchorMSec {
+            mediaStreamingResumeAnchorMSec = nil
+            mediaStreamingResumeAnchorUntil = nil
+        }
         mediaStreamingElapsedMSec = elapsedMSec
         mediaStreamingElapsedSampleAt = Date()
         if durationMSec > 0 {

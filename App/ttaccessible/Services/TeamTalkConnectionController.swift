@@ -124,6 +124,9 @@ final class TeamTalkConnectionController {
     var mediaStreamingPaused = false
     /// Set when the user seeks while paused; resume must re-send that offset because the SDK may not apply seeks until playback.
     var mediaStreamingSeekedWhilePaused = false
+    /// Ignore regressive SDK elapsed reports briefly after resume-via-restart.
+    var mediaStreamingResumeAnchorMSec: UInt32?
+    var mediaStreamingResumeAnchorUntil: Date?
     var mediaStreamingDurationMSec: UInt32 = 0
     var mediaStreamingElapsedMSec: UInt32 = 0
     var mediaStreamingElapsedSampleAt: Date?
