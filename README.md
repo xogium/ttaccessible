@@ -52,21 +52,27 @@ This downloads `libTeamTalk5.dylib` and `TeamTalk.h` from the [official TeamTalk
 
 For development:
 
+The Xcode project uses automatic code signing with an **Apple Development** certificate tied to the maintainer's team. If you do not have that certificate, disable code signing when building locally:
+
 ```bash
 # Debug build
-xcodebuild -project App/ttaccessible.xcodeproj -scheme ttaccessible -configuration Debug build
+xcodebuild -project App/ttaccessible.xcodeproj -scheme ttaccessible -configuration Debug CODE_SIGNING_ALLOWED=NO build
 
 # Release build
-xcodebuild -project App/ttaccessible.xcodeproj -scheme ttaccessible -configuration Release build
+xcodebuild -project App/ttaccessible.xcodeproj -scheme ttaccessible -configuration Release CODE_SIGNING_ALLOWED=NO build
 ```
 
-To produce a local Release `.app` and zip without signing:
+### Packaging (maintainers)
+
+`./build.sh` is for the maintainer team only. It still runs `xcodebuild` with the project's automatic signing settings, so it requires the same **Apple Development** certificate as building in Xcode — it does not produce an unsigned app for other contributors.
 
 ```bash
-./build.sh
+./build.sh              # Release .app and zip in BuildArtifacts/
+./build.sh --notarize   # Developer ID signature + Apple notarization
+./build.sh --release    # Notarize and publish to GitHub (updates Sparkle appcast)
 ```
 
-Packaging signed and notarized releases (publishing to GitHub, updating the Sparkle appcast) is maintainer-only and requires a `Developer ID Application` certificate.
+Public releases are signed with a **Developer ID Application** certificate and notarized by Apple. The `--notarize` and `--release` flags apply that maintainer-only signing workflow on top of the Xcode build.
 
 ## Installation
 
