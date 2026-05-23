@@ -536,7 +536,7 @@
 "shortcuts.mediaStream.startURL" = "Stream URL…";
 "shortcuts.mediaStream.stop" = "Stop Streaming";
 "mediaStream.panel.title" = "Stream Media File";
-"mediaStream.panel.message" = "Choose an audio or video file to stream into the channel. Supported video: H.264, MJPEG (AVI), or MPEG-4, up to 1280p and 8-bit. HEVC, 4K, and 10-bit recordings are not supported — convert them with another tool first.";
+"mediaStream.panel.message" = "Choose an audio or video file to stream into the channel. Video support depends on what TeamTalk can open on your Mac. 10-bit video is not supported.";
 "mediaStream.panel.choose" = "Stream";
 "mediaStream.url.prompt.title" = "Stream URL";
 "mediaStream.url.prompt.message" = "Enter the URL of an audio stream (internet radio, http, rtmp, rtsp).";

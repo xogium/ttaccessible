@@ -536,7 +536,7 @@
 "shortcuts.mediaStream.startURL" = "Diffuser une URL…";
 "shortcuts.mediaStream.stop" = "Arrêter la diffusion";
 "mediaStream.panel.title" = "Diffuser un fichier média";
-"mediaStream.panel.message" = "Choisissez un fichier audio ou vidéo à diffuser dans le canal. Vidéo prise en charge : H.264, MJPEG (AVI) ou MPEG-4, jusqu'à 1280p et en 8 bits. Les enregistrements HEVC, 4K ou 10 bits ne sont pas pris en charge — convertissez-les d'abord avec un autre outil.";
+"mediaStream.panel.message" = "Choisissez un fichier audio ou vidéo à diffuser dans le canal. La prise en charge vidéo dépend de ce que TeamTalk peut ouvrir sur votre Mac. La vidéo 10 bits n'est pas prise en charge.";
 "mediaStream.panel.choose" = "Diffuser";
 "mediaStream.url.prompt.title" = "Diffuser une URL";
 "mediaStream.url.prompt.message" = "Saisissez l'URL d'un flux audio (radio internet, http, rtmp, rtsp).";
