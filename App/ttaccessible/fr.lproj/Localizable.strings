@@ -92,6 +92,7 @@
 "common.state.off" = "Désactivé";
 "keychain.error.invalidPasswordData" = "Le mot de passe enregistré est invalide.";
 "keychain.error.unexpectedStatus" = "Erreur Trousseau %d.";
+"keychain.error.accessBlocked" = "Le Trousseau d'accès refuse l'accès à l'entrée enregistrée pour ce serveur (probablement à cause d'une signature de code différente entre versions). Ouvrez Trousseau d'accès, supprimez l'entrée « ttaccessible » correspondante, puis réessayez.";
 "teamtalk.connection.error.sdkUnavailable" = "La bibliothèque TeamTalk n'est pas disponible.";
 "teamtalk.connection.error.connectionStartFailed" = "La connexion au serveur n'a pas pu démarrer.";
 "teamtalk.connection.error.loginStartFailed" = "Le login TeamTalk n'a pas pu démarrer.";

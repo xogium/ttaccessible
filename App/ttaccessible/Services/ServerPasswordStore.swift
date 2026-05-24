@@ -27,6 +27,7 @@ final class ServerPasswordStore {
     enum PasswordStoreError: LocalizedError {
         case unexpectedStatus(OSStatus)
         case invalidPasswordData
+        case accessBlocked(OSStatus)
 
         var errorDescription: String? {
             switch self {
@@ -37,7 +38,27 @@ final class ServerPasswordStore {
                 return L10n.format("keychain.error.unexpectedStatus", status)
             case .invalidPasswordData:
                 return L10n.text("keychain.error.invalidPasswordData")
+            case .accessBlocked:
+                return L10n.text("keychain.error.accessBlocked")
             }
+        }
+    }
+
+    /// OSStatus codes indicating the Keychain ACL/auth state is blocking the
+    /// operation (rather than a real "wrong password" / I/O failure). The most
+    /// common trigger is a code-signature change between the binary that
+    /// originally created the item and the one trying to read/update it.
+    private static func isAuthBlocked(_ status: OSStatus) -> Bool {
+        switch status {
+        case errSecAuthFailed,
+             errSecInteractionNotAllowed,
+             errSecInteractionRequired,
+             errSecNotAvailable,
+             errSecUserCanceled,
+             errSecMissingEntitlement:
+            return true
+        default:
+            return false
         }
     }
 
@@ -79,27 +100,35 @@ final class ServerPasswordStore {
     }
 
     func setPassword(_ password: String?, for id: UUID) throws {
-        var credentials = try loadCredentials(for: id)
+        var credentials = loadCredentialsForUpdate(for: id)
         credentials.server = nonEmpty(password)
         try writeCredentials(credentials, for: id)
     }
 
     func setChannelPassword(_ password: String?, for id: UUID) throws {
-        var credentials = try loadCredentials(for: id)
+        var credentials = loadCredentialsForUpdate(for: id)
         credentials.channel = nonEmpty(password)
         try writeCredentials(credentials, for: id)
     }
 
     func deletePassword(for id: UUID) throws {
-        var credentials = try loadCredentials(for: id)
+        var credentials = loadCredentialsForUpdate(for: id)
         credentials.server = nil
         try writeCredentials(credentials, for: id)
     }
 
     func deleteChannelPassword(for id: UUID) throws {
-        var credentials = try loadCredentials(for: id)
+        var credentials = loadCredentialsForUpdate(for: id)
         credentials.channel = nil
         try writeCredentials(credentials, for: id)
+    }
+
+    /// Best-effort read for write operations: if the existing item is unreadable
+    /// (broken ACL after a code-signature change, corrupted JSON, …), fall back
+    /// to a blank record. The pending write will then overwrite the stale item
+    /// instead of failing the whole flow before it gets the chance.
+    private func loadCredentialsForUpdate(for id: UUID) -> Credentials {
+        (try? loadCredentials(for: id)) ?? Credentials()
     }
 
     // MARK: - Internals
@@ -131,13 +160,22 @@ final class ServerPasswordStore {
             cacheCredentials(empty, for: id)
             return empty
         default:
+            if Self.isAuthBlocked(status) {
+                throw PasswordStoreError.accessBlocked(status)
+            }
             throw PasswordStoreError.unexpectedStatus(status)
         }
     }
 
     private func writeCredentials(_ credentials: Credentials, for id: UUID) throws {
+        // Tolerate auth/ACL failures on delete: if the existing item is locked
+        // behind a stale ACL we still want a shot at overwriting it via the
+        // SecItemAdd → SecItemUpdate fallback below. Real failures resurface
+        // through the add/update path.
         let deleteStatus = SecItemDelete(baseQuery(for: id) as CFDictionary)
-        guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
+        if deleteStatus != errSecSuccess,
+           deleteStatus != errSecItemNotFound,
+           !Self.isAuthBlocked(deleteStatus) {
             throw PasswordStoreError.unexpectedStatus(deleteStatus)
         }
 
@@ -151,10 +189,30 @@ final class ServerPasswordStore {
         attributes[kSecValueData] = data
 
         let addStatus = SecItemAdd(attributes as CFDictionary, nil)
-        guard addStatus == errSecSuccess else {
+        switch addStatus {
+        case errSecSuccess:
+            cacheCredentials(credentials, for: id)
+        case errSecDuplicateItem:
+            // Delete was rejected by the ACL — the old item is still there.
+            // Try to update its value in place, which works when the item's
+            // ACL grants the current binary update access.
+            let updateStatus = SecItemUpdate(
+                baseQuery(for: id) as CFDictionary,
+                [kSecValueData: data] as CFDictionary
+            )
+            guard updateStatus == errSecSuccess else {
+                if Self.isAuthBlocked(updateStatus) {
+                    throw PasswordStoreError.accessBlocked(updateStatus)
+                }
+                throw PasswordStoreError.unexpectedStatus(updateStatus)
+            }
+            cacheCredentials(credentials, for: id)
+        default:
+            if Self.isAuthBlocked(addStatus) {
+                throw PasswordStoreError.accessBlocked(addStatus)
+            }
             throw PasswordStoreError.unexpectedStatus(addStatus)
         }
-        cacheCredentials(credentials, for: id)
     }
 
     private func baseQuery(for id: UUID) -> [CFString: Any] {

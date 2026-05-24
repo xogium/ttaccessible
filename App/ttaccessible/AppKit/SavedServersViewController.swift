@@ -578,15 +578,13 @@ final class SavedServersViewController: NSViewController {
             return
         }
 
-        let password: String
-        let initialChannelPassword: String
-        do {
-            password = try passwordStore.password(for: record.id) ?? ""
-            initialChannelPassword = try passwordStore.channelPassword(for: record.id) ?? record.initialChannelPassword
-        } catch {
-            presentErrorAlert(message: error.localizedDescription)
-            return
-        }
+        // Keep the editor reachable even when the keychain refuses to release
+        // the saved password (broken ACL after a re-sign, locked keychain, …).
+        // The user can simply re-type their credentials and the save path will
+        // overwrite the stale item.
+        let password = (try? passwordStore.password(for: record.id)) ?? ""
+        let initialChannelPassword = (try? passwordStore.channelPassword(for: record.id))
+            ?? record.initialChannelPassword
 
         let draft = SavedServerDraft(record: record, password: password, initialChannelPassword: initialChannelPassword)
         let controller = SavedServerEditorWindowController(mode: .edit, draft: draft, parentWindow: view.window)

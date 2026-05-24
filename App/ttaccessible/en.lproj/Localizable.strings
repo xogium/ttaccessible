@@ -92,6 +92,7 @@
 "common.state.off" = "Off";
 "keychain.error.invalidPasswordData" = "The saved password is invalid.";
 "keychain.error.unexpectedStatus" = "Keychain error %d.";
+"keychain.error.accessBlocked" = "The Keychain is denying access to the entry saved for this server (likely because of a different code signature between versions). Open Keychain Access, delete the matching “ttaccessible” entry, then try again.";
 "teamtalk.connection.error.sdkUnavailable" = "The TeamTalk library is not available.";
 "teamtalk.connection.error.connectionStartFailed" = "The connection to the server could not be started.";
 "teamtalk.connection.error.loginStartFailed" = "The TeamTalk login could not be started.";
