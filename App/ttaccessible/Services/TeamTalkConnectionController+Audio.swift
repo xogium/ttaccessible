@@ -221,19 +221,18 @@ extension TeamTalkConnectionController {
 
     func activateVoiceTransmission(completion: @escaping (Result<Void, Error>) -> Void) {
         queue.async { [weak self] in
-            guard let self,
-                  let instance = self.instance,
-                  let record = self.connectedRecord else {
-                DispatchQueue.main.async {
-                    completion(.failure(TeamTalkConnectionError.connectionFailed))
-                }
+            guard let self else { return }
+            guard let instance = self.instance, let record = self.connectedRecord else {
+                self.healStaleSessionIfNeededLocked()
+                self.finishOnMain(.failure(self.sessionUnavailableErrorLocked()), completion: completion)
                 return
             }
 
             guard TT_GetMyChannelID(instance) > 0 else {
-                DispatchQueue.main.async {
-                    completion(.failure(TeamTalkConnectionError.internalError(L10n.text("connectedServer.audio.error.notInChannel"))))
-                }
+                self.finishOnMain(
+                    .failure(TeamTalkConnectionError.internalError(L10n.text("connectedServer.audio.error.notInChannel"))),
+                    completion: completion
+                )
                 return
             }
 
@@ -245,24 +244,20 @@ extension TeamTalkConnectionController {
                 let preferencesStore = self.preferencesStore
                 DispatchQueue.main.async {
                     preferencesStore.updateLastVoiceTransmissionEnabled(true)
-                    completion(.success(()))
                 }
+                self.finishOnMain(.success(()), completion: completion)
             } catch {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
+                self.finishOnMain(.failure(error), completion: completion)
             }
         }
     }
 
     func deactivateVoiceTransmission(completion: @escaping (Result<Void, Error>) -> Void) {
         queue.async { [weak self] in
-            guard let self,
-                  let instance = self.instance,
-                  let record = self.connectedRecord else {
-                DispatchQueue.main.async {
-                    completion(.failure(TeamTalkConnectionError.connectionFailed))
-                }
+            guard let self else { return }
+            guard let instance = self.instance, let record = self.connectedRecord else {
+                self.healStaleSessionIfNeededLocked()
+                self.finishOnMain(.failure(self.sessionUnavailableErrorLocked()), completion: completion)
                 return
             }
 
@@ -278,8 +273,8 @@ extension TeamTalkConnectionController {
             let preferencesStore = self.preferencesStore
             DispatchQueue.main.async {
                 preferencesStore.updateLastVoiceTransmissionEnabled(false)
-                completion(.success(()))
             }
+            self.finishOnMain(.success(()), completion: completion)
         }
     }
 

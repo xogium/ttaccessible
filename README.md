@@ -17,6 +17,7 @@ The official TeamTalk Qt client on Mac has significant accessibility issues — 
 - **Adaptive jitter buffer** — improves audio quality on unstable connections
 - **Recording** — muxed (all voices) or per-user, WAV or OGG format, auto-restart on channel change
 - **Per-user volume and stereo balance** — persisted across sessions
+- **In-window video** — media file streaming with collapsible panel (formats depend on TeamTalk/macOS; 10-bit video is rejected before streaming)
 - **Server administration** — user accounts, bans, server properties, save config
 - **Per-event announcement customization** — choose exactly which events get announced
 - **Three sound packs** — Default, Majorly-G, Old

@@ -29,13 +29,15 @@ extension TeamTalkConnectionController {
                         : (user.uUserState & UInt32(USERSTATE_VOICE.rawValue)) != 0
                     let isMuted = (user.uUserState & UInt32(USERSTATE_MUTE_VOICE.rawValue)) != 0
                     let isMediaFileMuted = (user.uUserState & UInt32(USERSTATE_MUTE_MEDIAFILE.rawValue)) != 0
+                    let isStreamingMediaFileVideo = (user.uUserState & UInt32(USERSTATE_MEDIAFILE_VIDEO.rawValue)) != 0
                     return (
                         user.nUserID,
                         ConnectedUserAudioState(
                             userID: user.nUserID,
                             isTalking: isTalking,
                             isMuted: isMuted,
-                            isMediaFileMuted: isMediaFileMuted
+                            isMediaFileMuted: isMediaFileMuted,
+                            isStreamingMediaFileVideo: isStreamingMediaFileVideo
                         )
                     )
                 }
@@ -211,6 +213,7 @@ extension TeamTalkConnectionController {
                                     : (user.uUserState & UInt32(USERSTATE_VOICE.rawValue)) != 0,
                                 isMuted: (user.uUserState & UInt32(USERSTATE_MUTE_VOICE.rawValue)) != 0,
                                 isMediaFileMuted: (user.uUserState & UInt32(USERSTATE_MUTE_MEDIAFILE.rawValue)) != 0,
+                                isStreamingMediaFileVideo: (user.uUserState & UInt32(USERSTATE_MEDIAFILE_VIDEO.rawValue)) != 0,
                                 isAway: (user.nStatusMode & 0xFF) == 0x01,
                                 isQuestion: (user.nStatusMode & 0xFF) == 0x02,
                                 ipAddress: ttString(from: user.szIPAddress),
@@ -330,7 +333,8 @@ extension TeamTalkConnectionController {
             outputGainDB: preferences.outputGainDB,
             recordingActive: recordingMuxedActive || recordingSeparateActive,
             mediaStreamingActive: mediaStreamingActive,
-            mediaStreamingFileName: mediaStreamingFileName
+            mediaStreamingFileName: mediaStreamingFileName,
+            mediaStreamingHasVideo: mediaStreamingHasVideo
         )
     }
 

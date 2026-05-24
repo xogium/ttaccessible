@@ -21,6 +21,7 @@ struct ConnectedServerUser: Equatable, Identifiable {
     let isTalking: Bool
     let isMuted: Bool
     let isMediaFileMuted: Bool
+    let isStreamingMediaFileVideo: Bool
     let isAway: Bool
     let isQuestion: Bool
     let ipAddress: String
@@ -162,6 +163,7 @@ struct ConnectedServerSession: Equatable {
     let recordingActive: Bool
     let mediaStreamingActive: Bool
     let mediaStreamingFileName: String?
+    let mediaStreamingHasVideo: Bool
 }
 
 struct ConnectedUserAudioState: Equatable {
@@ -169,6 +171,7 @@ struct ConnectedUserAudioState: Equatable {
     let isTalking: Bool
     let isMuted: Bool
     let isMediaFileMuted: Bool
+    let isStreamingMediaFileVideo: Bool
 }
 
 struct ConnectedServerAudioRuntimeUpdate: Equatable {

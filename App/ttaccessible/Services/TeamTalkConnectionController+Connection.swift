@@ -554,6 +554,10 @@ extension TeamTalkConnectionController {
                 if connectedRecord != nil {
                     publishAudioRuntimeUpdateLocked(instance: instance)
                 }
+            case CLIENTEVENT_USER_MEDIAFILE_VIDEO:
+                if connectedRecord != nil {
+                    handleUserMediaFileVideoEventLocked(userID: message.nSource)
+                }
             case CLIENTEVENT_USER_RECORD_MEDIAFILE:
                 if connectedRecord != nil {
                     let status = message.mediafileinfo.nStatus
@@ -571,17 +575,27 @@ extension TeamTalkConnectionController {
                         if info.uDurationMSec > 0 {
                             mediaStreamingDurationMSec = info.uDurationMSec
                         }
-                        if let fileName = mediaStreamingFileName {
+                        if let fileName = mediaStreamingFileName, !mediaStreamingStartedHistoryLogged {
                             appendMediaStreamingStartedHistoryLocked(fileName: fileName)
+                            mediaStreamingStartedHistoryLogged = true
                             publishInvalidation.insert(.history)
                         }
                         updateMediaStreamingProgressLocked(elapsedMSec: info.uElapsedMSec, durationMSec: info.uDurationMSec)
-                    case MFS_PLAYING:
-                        updateMediaStreamingProgressLocked(elapsedMSec: info.uElapsedMSec, durationMSec: info.uDurationMSec)
                     case MFS_PAUSED:
-                        mediaStreamingPaused = true
-                        updateMediaStreamingProgressLocked(elapsedMSec: info.uElapsedMSec, durationMSec: info.uDurationMSec)
+                        if !mediaStreamingRestartInFlight {
+                            mediaStreamingUserPauseIntent = false
+                            mediaStreamingPaused = true
+                            updateMediaStreamingProgressLocked(elapsedMSec: info.uElapsedMSec, durationMSec: info.uDurationMSec)
+                        }
+                    case MFS_PLAYING:
+                        if !mediaStreamingRestartInFlight, !mediaStreamingUserPauseIntent {
+                            mediaStreamingPaused = false
+                            updateMediaStreamingProgressLocked(elapsedMSec: info.uElapsedMSec, durationMSec: info.uDurationMSec)
+                        }
                     case MFS_FINISHED, MFS_ABORTED, MFS_CLOSED:
+                        if shouldIgnoreMediaStreamingFinalizeLocked(info: info) {
+                            break
+                        }
                         finalizeMediaStreamingLocked(instance: instance, reason: .finished)
                     case MFS_ERROR:
                         finalizeMediaStreamingLocked(instance: instance, reason: .error)
@@ -761,6 +775,7 @@ extension TeamTalkConnectionController {
         stopPollingLocked()
 
         if let instance {
+            cleanupVideoLocked()
             if mediaStreamingActive {
                 _ = TT_StopStreamingMediaFileToChannel(instance)
             }
@@ -784,12 +799,24 @@ extension TeamTalkConnectionController {
         mediaStreamingSecurityScopedURL?.stopAccessingSecurityScopedResource()
         mediaStreamingSecurityScopedURL = nil
         mediaStreamingActive = false
+        mediaStreamingPath = nil
+        mediaStreamingStartedHistoryLogged = false
+        mediaStreamingSeekedWhilePaused = false
         mediaStreamingFileName = nil
+        mediaStreamingRestartInFlight = false
+        mediaStreamingUserPauseIntent = false
         mediaStreamingPaused = false
         mediaStreamingDurationMSec = 0
         mediaStreamingElapsedMSec = 0
         mediaStreamingElapsedSampleAt = nil
         mediaStreamingBroadcastGainLevel = INT32(SOUND_GAIN_DEFAULT.rawValue)
+        mediaStreamingHasVideo = false
+        mediaStreamingActiveVideoCodec = VideoCodec()
+        mediaStreamingFinalizeSuppressedUntil = nil
+        mediaStreamingResumeAnchorMSec = nil
+        mediaStreamingResumeAnchorUntil = nil
+        activeVideoDisplayUserID = 0
+        usersWithPendingMediaVideoFrame.removeAll()
         publishMediaStreamingProgressLocked()
         recordingMuxedActive = false
         recordingSeparateActive = false
