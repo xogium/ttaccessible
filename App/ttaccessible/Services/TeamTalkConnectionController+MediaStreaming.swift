@@ -398,8 +398,7 @@ extension TeamTalkConnectionController {
             publishMediaStreamingProgressLocked()
             return
         }
-        if mediaStreamingResumeAnchorMSec != nil,
-           let anchorMSec = mediaStreamingResumeAnchorMSec,
+        if let anchorMSec = mediaStreamingResumeAnchorMSec,
            elapsedMSec + 500 >= anchorMSec {
             mediaStreamingResumeAnchorMSec = nil
             mediaStreamingResumeAnchorUntil = nil

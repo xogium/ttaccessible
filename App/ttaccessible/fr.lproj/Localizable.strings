@@ -537,7 +537,7 @@
 "shortcuts.mediaStream.startURL" = "Diffuser une URL…";
 "shortcuts.mediaStream.stop" = "Arrêter la diffusion";
 "mediaStream.panel.title" = "Diffuser un fichier média";
-"mediaStream.panel.message" = "Choisissez un fichier audio ou vidéo à diffuser dans le canal. La prise en charge vidéo dépend de ce que TeamTalk peut ouvrir sur votre Mac. La vidéo 10 bits n'est pas prise en charge.";
+"mediaStream.panel.message" = "Choisissez un fichier audio ou vidéo à diffuser dans le canal. La prise en charge vidéo dépend des formats que TeamTalk peut décoder sur votre Mac. La vidéo 10 bits n'est pas prise en charge.";
 "mediaStream.panel.choose" = "Diffuser";
 "mediaStream.url.prompt.title" = "Diffuser une URL";
 "mediaStream.url.prompt.message" = "Saisissez l'URL d'un flux audio (radio internet, http, rtmp, rtsp).";
@@ -554,9 +554,6 @@
 "mediaStream.error.unsupportedFormat" = "Ce format média n'est pas pris en charge pour la diffusion.";
 "mediaStream.error.unsupportedFormat.detail" = "Ce fichier ne peut pas être diffusé dans TeamTalk. %@";
 "mediaStream.error.reason.sdkUnsupported" = "TeamTalk ne peut pas ouvrir ce format de fichier.";
-"mediaStream.error.reason.videoCodec" = "Le codec vidéo est %@ (pris en charge : H.264, MJPEG, MPEG-1, MPEG-4).";
-"mediaStream.error.reason.videoCodecBlocked" = "Le codec vidéo est %@ (HEVC, VP9 et AV1 ne sont pas pris en charge).";
-"mediaStream.error.reason.videoResolution" = "La résolution vidéo est %1$@×%2$@ (1280 pixels maximum sur le côté le plus long).";
 "mediaStream.error.reason.tenBitVideo" = "La vidéo 10 bits n'est pas prise en charge.";
 "history.mediaStreamingStarted" = "Diffusion du média : %@";
 "history.mediaStreamingFinished" = "Diffusion du média terminée";

@@ -554,9 +554,6 @@
 "mediaStream.error.unsupportedFormat" = "This media format is not supported for streaming.";
 "mediaStream.error.unsupportedFormat.detail" = "This file cannot be streamed in TeamTalk. %@";
 "mediaStream.error.reason.sdkUnsupported" = "TeamTalk cannot open this file format.";
-"mediaStream.error.reason.videoCodec" = "Video codec is %@ (supported: H.264, MJPEG, MPEG-1, MPEG-4).";
-"mediaStream.error.reason.videoCodecBlocked" = "Video codec is %@ (HEVC, VP9, and AV1 are not supported).";
-"mediaStream.error.reason.videoResolution" = "Video resolution is %1$@×%2$@ (maximum 1280 pixels on the longest side).";
 "mediaStream.error.reason.tenBitVideo" = "10-bit video is not supported.";
 "history.mediaStreamingStarted" = "Streaming media: %@";
 "history.mediaStreamingFinished" = "Streaming finished";
