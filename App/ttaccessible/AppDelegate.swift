@@ -143,6 +143,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configurePushToTalkObservers() {
+        // Lets the audio insert path treat PTT as inactive when no global
+        // shortcut is configured — otherwise pushToTalkPressed never flips
+        // and the mic stays muted forever.
+        connectionController.pushToTalkShortcutResolver = {
+            KeyboardShortcuts.getShortcut(for: .pushToTalk) != nil
+        }
+
         // Static handlers registered once for the lifetime of the app — the
         // library only fires them while a shortcut is configured for the
         // .pushToTalk name. Mode gating (always-on vs PTT) happens in the

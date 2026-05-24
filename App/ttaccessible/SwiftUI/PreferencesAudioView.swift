@@ -13,6 +13,7 @@ struct PreferencesAudioView: View {
 
     @State private var selectedInputID = "__system_default__"
     @State private var selectedOutputID = "__system_default__"
+    @State private var pushToTalkShortcutConfigured: Bool = KeyboardShortcuts.getShortcut(for: .pushToTalk) != nil
 
     var body: some View {
         PreferencesPaneScrollView {
@@ -181,6 +182,13 @@ struct PreferencesAudioView: View {
                         .accessibilityLabel(L10n.text("preferences.audio.pushToTalk.key.label"))
                 }
 
+                if !pushToTalkShortcutConfigured {
+                    Text(L10n.text("preferences.audio.pushToTalk.warning.noShortcut"))
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 Toggle(
                     L10n.text("preferences.audio.pushToTalk.beep.label"),
                     isOn: Binding(
@@ -189,6 +197,12 @@ struct PreferencesAudioView: View {
                     )
                 )
                 .toggleStyle(.switch)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+            let configured = KeyboardShortcuts.getShortcut(for: .pushToTalk) != nil
+            if configured != pushToTalkShortcutConfigured {
+                pushToTalkShortcutConfigured = configured
             }
         }
     }

@@ -554,8 +554,13 @@ extension TeamTalkConnectionController {
             return
         }
         let inChannel = TT_GetMyChannelID(instance) > 0
-        let pttMode = preferencesStore.preferences.microphoneMode == .pushToTalk
-        let allowTransmission = !pttMode || pushToTalkPressed
+        // PTT only gates transmission when a global shortcut is actually
+        // configured. Without a shortcut, pushToTalkPressed could never become
+        // true and the mic would be silently muted forever — fall back to
+        // always-on so the user is at least heard.
+        let pttEnforced = preferencesStore.preferences.microphoneMode == .pushToTalk
+            && (pushToTalkShortcutResolver?() ?? false)
+        let allowTransmission = !pttEnforced || pushToTalkPressed
         guard voiceTransmissionEnabled, inChannel, allowTransmission else {
             AudioCaptureDiagnostics.shared.recordInsertAttempt(
                 sampleRate: chunk.sampleRate,

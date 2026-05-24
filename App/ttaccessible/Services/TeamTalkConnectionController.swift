@@ -106,6 +106,7 @@ final class TeamTalkConnectionController {
     var inputAudioReady = false
     var voiceTransmissionEnabled = false
     var pushToTalkPressed = false
+    var pushToTalkShortcutResolver: (() -> Bool)?
     var lastAudioWarningMessage: String?
     var masterMuted = false
     var hearMyselfEnabled = false

@@ -402,6 +402,7 @@
 "preferences.audio.microphoneMode.pushToTalk" = "Push-to-talk (hold a key to transmit)";
 "preferences.audio.pushToTalk.key.label" = "Hotkey";
 "preferences.audio.pushToTalk.beep.label" = "Play a sound when transmission starts and stops";
+"preferences.audio.pushToTalk.warning.noShortcut" = "No hotkey configured — push-to-talk is inactive and the microphone keeps transmitting as in always-on mode. Click the recorder above to set a key.";
 "preferences.accessibility.title" = "Accessibility";
 "preferences.accessibility.channelAnnouncements" = "Announce channel messages";
 "preferences.accessibility.privateAnnouncements" = "Announce private messages";

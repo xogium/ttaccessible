@@ -402,6 +402,7 @@
 "preferences.audio.microphoneMode.pushToTalk" = "Push-to-talk (maintenez une touche pour parler)";
 "preferences.audio.pushToTalk.key.label" = "Raccourci";
 "preferences.audio.pushToTalk.beep.label" = "Jouer un son au début et à la fin de la transmission";
+"preferences.audio.pushToTalk.warning.noShortcut" = "Aucun raccourci configuré — le push-to-talk est inactif et le microphone reste ouvert comme en mode « toujours actif ». Cliquez sur l'enregistreur ci-dessus pour définir une touche.";
 "preferences.accessibility.title" = "Accessibilité";
 "preferences.accessibility.channelAnnouncements" = "Annoncer les messages de canal";
 "preferences.accessibility.privateAnnouncements" = "Annoncer les messages privés";
