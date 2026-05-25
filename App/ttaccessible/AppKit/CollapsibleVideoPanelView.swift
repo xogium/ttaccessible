@@ -41,18 +41,21 @@ final class CollapsibleVideoPanelView: NSView {
     }
 
     func updateVideoState(_ state: VideoDisplayState) {
-        if state.userID == 0 || state.frame == nil {
-            videoFrameView.update(frame: nil)
-            videoFrameView.setAccessibilitySourceLabel("")
-        } else {
+        let hasActiveSource = state.userID != 0
+        isHidden = !hasActiveSource
+        if hasActiveSource {
             videoFrameView.update(frame: state.frame)
             videoFrameView.setAccessibilitySourceLabel(
                 L10n.format("video.panel.source.mediaFile", state.displayName)
             )
+        } else {
+            videoFrameView.update(frame: nil)
+            videoFrameView.setAccessibilitySourceLabel("")
         }
     }
 
     private func configureUI() {
+        isHidden = true
         toggleButton.bezelStyle = .disclosure
         toggleButton.setButtonType(.switch)
         toggleButton.title = L10n.text("video.panel.toggle.title")
