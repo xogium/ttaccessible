@@ -48,14 +48,22 @@ struct PreferencesAnnouncementsView: View {
                         .font(.headline)
                         .accessibilityAddTraits(.isHeader)
 
-                    ForEach(BackgroundMessageAnnouncementType.allCases) { type in
+                    Toggle(
+                        L10n.text("preferences.notifications.useGlobalMode"),
+                        isOn: Binding(
+                            get: { notificationsStore.state.useGlobalAnnouncementMode },
+                            set: { notificationsStore.updateUseGlobalAnnouncementMode($0) }
+                        )
+                    )
+
+                    if notificationsStore.state.useGlobalAnnouncementMode {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(L10n.text(type.titleLocalizationKey))
+                            Text(L10n.text("preferences.notifications.globalMode"))
                             Picker(
-                                L10n.text(type.titleLocalizationKey),
+                                L10n.text("preferences.notifications.globalMode"),
                                 selection: Binding(
-                                    get: { notificationsStore.backgroundAnnouncementMode(for: type) },
-                                    set: { notificationsStore.updateBackgroundAnnouncementMode($0, for: type) }
+                                    get: { notificationsStore.state.globalAnnouncementMode },
+                                    set: { notificationsStore.updateGlobalAnnouncementMode($0) }
                                 )
                             ) {
                                 ForEach(BackgroundMessageAnnouncementMode.allCases) { mode in
@@ -63,6 +71,25 @@ struct PreferencesAnnouncementsView: View {
                                 }
                             }
                             .pickerStyle(.menu)
+                            .labelsHidden()
+                        }
+                    } else {
+                        ForEach(BackgroundMessageAnnouncementType.allCases) { type in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(L10n.text(type.titleLocalizationKey))
+                                Picker(
+                                    L10n.text(type.titleLocalizationKey),
+                                    selection: Binding(
+                                        get: { notificationsStore.backgroundAnnouncementMode(for: type) },
+                                        set: { notificationsStore.updateBackgroundAnnouncementMode($0, for: type) }
+                                    )
+                                ) {
+                                    ForEach(BackgroundMessageAnnouncementMode.allCases) { mode in
+                                        Text(L10n.text(mode.localizationKey)).tag(mode)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            }
                         }
                     }
                 }

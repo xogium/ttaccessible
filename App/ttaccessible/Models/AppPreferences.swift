@@ -93,6 +93,8 @@ struct AppPreferences: Codable, Equatable {
         case channelMessagesBackgroundMode
         case broadcastMessagesBackgroundMode
         case sessionHistoryBackgroundMode
+        case useGlobalAnnouncementMode
+        case globalAnnouncementMode
         case macOSTTSVoiceIdentifier
         case macOSTTSSpeechRate
         case macOSTTSVolume
@@ -140,6 +142,8 @@ struct AppPreferences: Codable, Equatable {
     var channelMessagesBackgroundMode: BackgroundMessageAnnouncementMode
     var broadcastMessagesBackgroundMode: BackgroundMessageAnnouncementMode
     var sessionHistoryBackgroundMode: BackgroundMessageAnnouncementMode
+    var useGlobalAnnouncementMode: Bool
+    var globalAnnouncementMode: BackgroundMessageAnnouncementMode
     var macOSTTSVoiceIdentifier: String?
     var macOSTTSSpeechRate: Double
     var macOSTTSVolume: Double
@@ -200,6 +204,8 @@ struct AppPreferences: Codable, Equatable {
         channelMessagesBackgroundMode: BackgroundMessageAnnouncementMode = .systemNotification,
         broadcastMessagesBackgroundMode: BackgroundMessageAnnouncementMode = .systemNotification,
         sessionHistoryBackgroundMode: BackgroundMessageAnnouncementMode = .systemNotification,
+        useGlobalAnnouncementMode: Bool = true,
+        globalAnnouncementMode: BackgroundMessageAnnouncementMode = .systemNotification,
         macOSTTSVoiceIdentifier: String? = nil,
         macOSTTSSpeechRate: Double = 0.5,
         macOSTTSVolume: Double = 1.0,
@@ -253,6 +259,8 @@ struct AppPreferences: Codable, Equatable {
         self.channelMessagesBackgroundMode = channelMessagesBackgroundMode.normalizedForBackground
         self.broadcastMessagesBackgroundMode = broadcastMessagesBackgroundMode.normalizedForBackground
         self.sessionHistoryBackgroundMode = sessionHistoryBackgroundMode.normalizedForBackground
+        self.useGlobalAnnouncementMode = useGlobalAnnouncementMode
+        self.globalAnnouncementMode = globalAnnouncementMode.normalizedForBackground
         self.macOSTTSVoiceIdentifier = macOSTTSVoiceIdentifier?.isEmpty == true ? nil : macOSTTSVoiceIdentifier
         self.macOSTTSSpeechRate = Self.clampMacOSTTSSpeechRate(macOSTTSSpeechRate)
         self.macOSTTSVolume = Self.clampMacOSTTSVolume(macOSTTSVolume)
@@ -348,6 +356,21 @@ struct AppPreferences: Codable, Equatable {
         channelMessagesBackgroundMode = (try container.decodeIfPresent(BackgroundMessageAnnouncementMode.self, forKey: .channelMessagesBackgroundMode) ?? .systemNotification).normalizedForBackground
         broadcastMessagesBackgroundMode = (try container.decodeIfPresent(BackgroundMessageAnnouncementMode.self, forKey: .broadcastMessagesBackgroundMode) ?? .systemNotification).normalizedForBackground
         sessionHistoryBackgroundMode = (try container.decodeIfPresent(BackgroundMessageAnnouncementMode.self, forKey: .sessionHistoryBackgroundMode) ?? .systemNotification).normalizedForBackground
+        let storedUseGlobal = try container.decodeIfPresent(Bool.self, forKey: .useGlobalAnnouncementMode)
+        let storedGlobalMode = try container.decodeIfPresent(BackgroundMessageAnnouncementMode.self, forKey: .globalAnnouncementMode)?.normalizedForBackground
+        if let storedUseGlobal {
+            useGlobalAnnouncementMode = storedUseGlobal
+            globalAnnouncementMode = storedGlobalMode ?? privateMessagesBackgroundMode
+        } else {
+            // Migration depuis une version sans mode global : si les 4 modes per-event
+            // sont identiques (cas le plus fréquent), on active le mode global avec cette
+            // valeur. Sinon, on garde le mode désactivé pour préserver la config existante.
+            let allEqual = privateMessagesBackgroundMode == channelMessagesBackgroundMode
+                && privateMessagesBackgroundMode == broadcastMessagesBackgroundMode
+                && privateMessagesBackgroundMode == sessionHistoryBackgroundMode
+            useGlobalAnnouncementMode = allEqual
+            globalAnnouncementMode = storedGlobalMode ?? privateMessagesBackgroundMode
+        }
         macOSTTSVoiceIdentifier = try container.decodeIfPresent(String.self, forKey: .macOSTTSVoiceIdentifier)
         macOSTTSSpeechRate = Self.clampMacOSTTSSpeechRate(try container.decodeIfPresent(Double.self, forKey: .macOSTTSSpeechRate) ?? 0.5)
         macOSTTSVolume = Self.clampMacOSTTSVolume(try container.decodeIfPresent(Double.self, forKey: .macOSTTSVolume) ?? 1.0)
@@ -404,6 +427,8 @@ struct AppPreferences: Codable, Equatable {
         try container.encode(channelMessagesBackgroundMode, forKey: .channelMessagesBackgroundMode)
         try container.encode(broadcastMessagesBackgroundMode, forKey: .broadcastMessagesBackgroundMode)
         try container.encode(sessionHistoryBackgroundMode, forKey: .sessionHistoryBackgroundMode)
+        try container.encode(useGlobalAnnouncementMode, forKey: .useGlobalAnnouncementMode)
+        try container.encode(globalAnnouncementMode, forKey: .globalAnnouncementMode)
         try container.encodeIfPresent(macOSTTSVoiceIdentifier, forKey: .macOSTTSVoiceIdentifier)
         try container.encode(Self.clampMacOSTTSSpeechRate(macOSTTSSpeechRate), forKey: .macOSTTSSpeechRate)
         try container.encode(Self.clampMacOSTTSVolume(macOSTTSVolume), forKey: .macOSTTSVolume)
@@ -477,6 +502,16 @@ struct AppPreferences: Codable, Equatable {
     }
 
     func backgroundAnnouncementMode(for type: BackgroundMessageAnnouncementType) -> BackgroundMessageAnnouncementMode {
+        if useGlobalAnnouncementMode {
+            return globalAnnouncementMode
+        }
+        return perEventBackgroundAnnouncementMode(for: type)
+    }
+
+    /// Returns the per-event mode stored on disk, ignoring the global override.
+    /// Used by the preferences UI so that toggling the global switch off restores
+    /// the user's previous per-event configuration.
+    func perEventBackgroundAnnouncementMode(for type: BackgroundMessageAnnouncementType) -> BackgroundMessageAnnouncementMode {
         switch type {
         case .privateMessages:
             return privateMessagesBackgroundMode

@@ -325,6 +325,8 @@
 "preferences.notifications.backgroundMode.systemNotification" = "Notification système";
 "preferences.notifications.backgroundMode.macOSTextToSpeech" = "Synthèse vocale macOS";
 "preferences.notifications.backgroundMode.voiceOverAppleScript" = "VoiceOver via AppleScript";
+"preferences.notifications.useGlobalMode" = "Utiliser le même mode pour tous les types d'événements";
+"preferences.notifications.globalMode" = "Mode";
 "preferences.notifications.tts.title" = "Synthèse vocale macOS";
 "preferences.notifications.tts.voice" = "Voix";
 "preferences.notifications.tts.voice.systemDefault" = "Voix par défaut du système";

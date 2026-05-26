@@ -197,6 +197,14 @@ final class AppPreferencesStore: ObservableObject {
         mutate { $0.setBackgroundAnnouncementMode(mode, for: type) }
     }
 
+    func updateUseGlobalAnnouncementMode(_ value: Bool) {
+        mutate { $0.useGlobalAnnouncementMode = value }
+    }
+
+    func updateGlobalAnnouncementMode(_ mode: BackgroundMessageAnnouncementMode) {
+        mutate { $0.globalAnnouncementMode = mode.normalizedForBackground }
+    }
+
     func updateMacOSTTSVoiceIdentifier(_ identifier: String?) {
         mutate { $0.setMacOSTTSVoiceIdentifier(identifier) }
     }
@@ -721,6 +729,8 @@ final class NotificationsPreferencesStore: ObservableObject {
         var soundPack: String
         var disabledSoundEvents: Set<NotificationSound>
         var modes: [BackgroundMessageAnnouncementType: BackgroundMessageAnnouncementMode]
+        var useGlobalAnnouncementMode: Bool
+        var globalAnnouncementMode: BackgroundMessageAnnouncementMode
         var macOSTTSVoiceIdentifier: String?
         var macOSTTSSpeechRate: Double
         var macOSTTSVolume: Double
@@ -746,6 +756,8 @@ final class NotificationsPreferencesStore: ObservableObject {
                     || self.state.soundPack != nextState.soundPack
                     || self.state.disabledSoundEvents != nextState.disabledSoundEvents
                     || self.state.modes != nextState.modes
+                    || self.state.useGlobalAnnouncementMode != nextState.useGlobalAnnouncementMode
+                    || self.state.globalAnnouncementMode != nextState.globalAnnouncementMode
                     || self.state.macOSTTSVoiceIdentifier != nextState.macOSTTSVoiceIdentifier
                     || self.state.macOSTTSSpeechRate != nextState.macOSTTSSpeechRate
                     || self.state.macOSTTSVolume != nextState.macOSTTSVolume else {
@@ -755,6 +767,8 @@ final class NotificationsPreferencesStore: ObservableObject {
                 self.state.soundPack = nextState.soundPack
                 self.state.disabledSoundEvents = nextState.disabledSoundEvents
                 self.state.modes = nextState.modes
+                self.state.useGlobalAnnouncementMode = nextState.useGlobalAnnouncementMode
+                self.state.globalAnnouncementMode = nextState.globalAnnouncementMode
                 self.state.macOSTTSVoiceIdentifier = nextState.macOSTTSVoiceIdentifier
                 self.state.macOSTTSSpeechRate = nextState.macOSTTSSpeechRate
                 self.state.macOSTTSVolume = nextState.macOSTTSVolume
@@ -805,6 +819,14 @@ final class NotificationsPreferencesStore: ObservableObject {
         rootStore.updateBackgroundAnnouncementMode(mode, for: type)
     }
 
+    func updateUseGlobalAnnouncementMode(_ value: Bool) {
+        rootStore.updateUseGlobalAnnouncementMode(value)
+    }
+
+    func updateGlobalAnnouncementMode(_ mode: BackgroundMessageAnnouncementMode) {
+        rootStore.updateGlobalAnnouncementMode(mode)
+    }
+
     func updateMacOSTTSVoiceIdentifier(_ identifier: String?) {
         rootStore.updateMacOSTTSVoiceIdentifier(identifier)
     }
@@ -824,9 +846,11 @@ final class NotificationsPreferencesStore: ObservableObject {
             disabledSoundEvents: preferences.disabledSoundEvents,
             modes: Dictionary(
                 uniqueKeysWithValues: BackgroundMessageAnnouncementType.allCases.map { type in
-                    (type, preferences.backgroundAnnouncementMode(for: type))
+                    (type, preferences.perEventBackgroundAnnouncementMode(for: type))
                 }
             ),
+            useGlobalAnnouncementMode: preferences.useGlobalAnnouncementMode,
+            globalAnnouncementMode: preferences.globalAnnouncementMode,
             macOSTTSVoiceIdentifier: preferences.macOSTTSVoiceIdentifier,
             macOSTTSSpeechRate: preferences.macOSTTSSpeechRate,
             macOSTTSVolume: preferences.macOSTTSVolume,
