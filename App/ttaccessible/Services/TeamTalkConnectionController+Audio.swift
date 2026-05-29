@@ -52,6 +52,17 @@ extension TeamTalkConnectionController {
         }
     }
 
+    /// Briefly ignore the next device-change-triggered restart. Used by paths that
+    /// intentionally create transient CoreAudio aggregates (speaker tap, audio preview),
+    /// since those creations fire `kAudioHardwarePropertyDevices` and would otherwise
+    /// trigger a debounced `restartSoundSystem` that disrupts the new audio graph.
+    func suppressNextDeviceChange(for duration: TimeInterval) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            self.suppressDeviceChangeUntil = Date().addingTimeInterval(duration)
+        }
+    }
+
     func restartSoundSystem(completion: @escaping (Result<Void, Error>) -> Void) {
         queue.async { [weak self] in
             guard let self else {

@@ -32,18 +32,19 @@ final class AdvancedMicrophonePreviewController {
     func start(configuration: AdvancedMicrophoneAudioConfiguration) throws {
         stop()
 
-        // Start capture first so the engine resolves the actual hardware sample rate.
-        _ = try captureEngine.start(configuration: configuration)
-
-        let actualSampleRate = captureEngine.effectiveSampleRate ?? configuration.targetFormat.sampleRate
+        // Set up playback first. On duplex devices (e.g. Komplete Audio 6) used as both
+        // default output AND mic input, AVAudioEngine.start() can hang if we let the
+        // capture AUHAL claim the device first. Chunks are delivered at the configured
+        // target rate (the resampler in AdvancedMicrophoneAudioEngine resamples from the
+        // hardware rate to encoderFormat.sampleRate), so the playback format can be
+        // derived from the configuration directly — no need to query effectiveSampleRate.
         let channelCount = AVAudioChannelCount(max(configuration.targetFormat.channels, 1))
         guard let playbackFormat = AVAudioFormat(
             commonFormat: .pcmFormatInt16,
-            sampleRate: actualSampleRate,
+            sampleRate: configuration.targetFormat.sampleRate,
             channels: channelCount,
             interleaved: false
         ) else {
-            captureEngine.stop()
             throw AdvancedMicrophoneAudioEngineError.queueCreationFailed
         }
 
@@ -54,7 +55,17 @@ final class AdvancedMicrophonePreviewController {
         do {
             try playbackEngine.start()
         } catch {
-            captureEngine.stop()
+            self.playbackFormat = nil
+            throw error
+        }
+
+        do {
+            _ = try captureEngine.start(configuration: configuration)
+        } catch {
+            playerNode.stop()
+            playbackEngine.stop()
+            playbackEngine.reset()
+            self.playbackFormat = nil
             throw error
         }
 

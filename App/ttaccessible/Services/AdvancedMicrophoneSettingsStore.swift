@@ -176,6 +176,11 @@ final class AdvancedMicrophoneSettingsStore: ObservableObject {
             throw AdvancedMicrophoneAudioEngineError.deviceUnavailable
         }
 
+        // AVAudioEngine's playback path creates a CADefaultDeviceAggregate, which fires
+        // kAudioHardwarePropertyDevices — without this suppression the debounced
+        // restartSoundSystem fires ~500 ms later and silently kills the capture AUHAL.
+        connectionController.suppressNextDeviceChange(for: 2.0)
+
         let normalized = InputAudioDeviceResolver.normalizedPreferences(
             advancedPreferences,
             for: deviceInfo
