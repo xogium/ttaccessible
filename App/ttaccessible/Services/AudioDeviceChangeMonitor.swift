@@ -12,6 +12,7 @@ import Foundation
 /// Posts `Notification.Name.audioDevicesDidChange` on the main thread when a change is detected.
 final class AudioDeviceChangeMonitor {
     static let audioDevicesDidChange = Notification.Name("TTAccessibleAudioDevicesDidChange")
+    static let selectorUserInfoKey = "TTAccessibleAudioChangeSelector"
 
     private var isListening = false
     private var monitoredInputDeviceID: AudioDeviceID = kAudioObjectUnknown
@@ -117,7 +118,11 @@ final class AudioDeviceChangeMonitor {
             updateSampleRateMonitoring()
         }
         DispatchQueue.main.async {
-            NotificationCenter.default.post(name: Self.audioDevicesDidChange, object: nil)
+            NotificationCenter.default.post(
+                name: Self.audioDevicesDidChange,
+                object: nil,
+                userInfo: [Self.selectorUserInfoKey: selector]
+            )
         }
     }
 

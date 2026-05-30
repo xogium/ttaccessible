@@ -59,7 +59,19 @@ extension TeamTalkConnectionController {
     func suppressNextDeviceChange(for duration: TimeInterval) {
         queue.async { [weak self] in
             guard let self else { return }
-            self.suppressDeviceChangeUntil = Date().addingTimeInterval(duration)
+            self.extendDeviceChangeSuppressionLocked(duration: duration)
+        }
+    }
+
+    func handleDebouncedAudioHardwareChange(selector: UInt32) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            self.audioHardwareChangeWorkItem?.cancel()
+            let workItem = DispatchWorkItem { [weak self] in
+                self?.processAudioHardwareChangeLocked(selector: selector)
+            }
+            self.audioHardwareChangeWorkItem = workItem
+            self.queue.asyncAfter(deadline: .now() + .milliseconds(500), execute: workItem)
         }
     }
 
@@ -76,13 +88,14 @@ extension TeamTalkConnectionController {
                 return
             }
             if Date() < self.suppressDeviceChangeUntil {
-                AudioLogger.log("restartSoundSystem: skipped (suppressed for speaker tap)")
+                AudioLogger.log("restartSoundSystem: skipped (device-change suppression active)")
                 DispatchQueue.main.async { completion(.success(())) }
                 return
             }
             self.isRestartingSoundSystem = true
             defer { self.isRestartingSoundSystem = false }
 
+            self.extendDeviceChangeSuppressionLocked(duration: 5.0)
             AudioLogger.log("restartSoundSystem: begin")
 
             let hadMic = self.isAnyMicrophoneEngineRunning || self.inputAudioReady
@@ -145,6 +158,7 @@ extension TeamTalkConnectionController {
                 }
             }
 
+            self.captureAudioRoutingSnapshotLocked()
             AudioLogger.log("restartSoundSystem: done")
             DispatchQueue.main.async { completion(.success(())) }
         }
@@ -169,8 +183,28 @@ extension TeamTalkConnectionController {
                 return
             }
 
+            self.extendDeviceChangeSuppressionLocked(duration: 5.0)
+            let hadActiveAudio = self.outputAudioReady || self.inputAudioReady || self.isAnyMicrophoneEngineRunning
+            if hadActiveAudio {
+                // User-changed routing needs a fresh TeamTalk device list, not just close/reopen.
+                self.restartSoundSystem { [weak self] result in
+                    guard let self else { return }
+                    switch result {
+                    case .success:
+                        if let instance = self.instance, let record = self.connectedRecord {
+                            self.publishSessionLocked(instance: instance, record: record)
+                        }
+                        DispatchQueue.main.async { completion(.success(())) }
+                    case .failure(let error):
+                        DispatchQueue.main.async { completion(.failure(error)) }
+                    }
+                }
+                return
+            }
+
             do {
                 try self.reinitializeAudioDevicesLocked(instance: instance, preferences: preferences)
+                self.captureAudioRoutingSnapshotLocked()
                 self.publishSessionLocked(instance: instance, record: record)
                 DispatchQueue.main.async {
                     completion(.success(()))
@@ -247,6 +281,7 @@ extension TeamTalkConnectionController {
                 return
             }
 
+            self.extendDeviceChangeSuppressionLocked(duration: 3.0)
             do {
                 try self.ensureAdvancedMicrophoneInputReadyLocked(instance: instance)
                 self.voiceTransmissionEnabled = true
@@ -256,6 +291,7 @@ extension TeamTalkConnectionController {
                 DispatchQueue.main.async {
                     preferencesStore.updateLastVoiceTransmissionEnabled(true)
                 }
+                self.captureAudioRoutingSnapshotLocked()
                 self.finishOnMain(.success(()), completion: completion)
             } catch {
                 self.finishOnMain(.failure(error), completion: completion)
@@ -397,6 +433,8 @@ extension TeamTalkConnectionController {
         if wasVoiceTransmissionEnabled {
             voiceTransmissionEnabled = true
         }
+
+        captureAudioRoutingSnapshotLocked()
     }
 
     func makeAudioStatusText() -> String {
@@ -513,7 +551,7 @@ extension TeamTalkConnectionController {
         }
         // Suppress device change notifications briefly — creating the aggregate device
         // triggers kAudioHardwarePropertyDevices which would restart the sound system.
-        suppressDeviceChangeUntil = Date().addingTimeInterval(2.0)
+        extendDeviceChangeSuppressionLocked(duration: 2.0)
         guard tap.start() else {
             AudioLogger.log("AEC: speaker tap failed to start")
             suppressDeviceChangeUntil = .distantPast
@@ -985,6 +1023,137 @@ extension TeamTalkConnectionController {
             return String(format: "+%.0f dB", rounded)
         }
         return String(format: "%.0f dB", rounded)
+    }
+
+    // MARK: - Hardware change handling
+
+    func extendDeviceChangeSuppressionLocked(duration: TimeInterval) {
+        suppressDeviceChangeUntil = max(suppressDeviceChangeUntil, Date().addingTimeInterval(duration))
+    }
+
+    func processAudioHardwareChangeLocked(selector: UInt32) {
+        if Date() < suppressDeviceChangeUntil {
+            AudioLogger.log("processAudioHardwareChange: suppressed")
+            return
+        }
+
+        let previous = lastAudioRoutingSnapshot
+        cachedSoundDevices = []
+        cachedAudioDeviceCatalog = nil
+        let current = makeAudioRoutingSnapshotLocked()
+
+        let needsReinit = needsAudioReinitializationLocked(
+            previous: previous,
+            current: current,
+            selector: selector
+        )
+
+        AudioLogger.log(
+            "processAudioHardwareChange: selector=0x%08X needsReinit=%d in=%@ out=%@",
+            selector,
+            needsReinit ? 1 : 0,
+            current.resolvedInputUID ?? "nil",
+            current.preferredOutputPersistentID ?? "default"
+        )
+
+        lastAudioRoutingSnapshot = current
+
+        guard needsReinit,
+              let instance,
+              connectedRecord != nil,
+              outputAudioReady || inputAudioReady || isAnyMicrophoneEngineRunning else {
+            AudioLogger.log("processAudioHardwareChange: catalog refresh only")
+            return
+        }
+
+        AudioLogger.log("processAudioHardwareChange: restarting sound system for route change")
+        restartSoundSystem { [weak self] result in
+            guard let self else { return }
+            if case .success = result,
+               let instance = self.instance,
+               let record = self.connectedRecord {
+                self.publishSessionLocked(instance: instance, record: record)
+            }
+        }
+    }
+
+    func captureAudioRoutingSnapshotLocked() {
+        lastAudioRoutingSnapshot = makeAudioRoutingSnapshotLocked()
+    }
+
+    func makeAudioRoutingSnapshotLocked() -> AudioRoutingSnapshot {
+        let preferences = preferencesStore.preferences
+        let resolvedInput = InputAudioDeviceResolver.resolveCurrentInputDevice(
+            for: preferences.preferredInputDevice
+        )
+        let outputPreference = preferences.preferredOutputDevice
+        let outputPersistentID = outputPreference.persistentID
+        let catalog = availableAudioDevicesLocked(forceRefresh: true)
+        let outputInCatalog: Bool
+        if let outputPersistentID, outputPersistentID.isEmpty == false {
+            outputInCatalog = catalog.outputDevices.contains { $0.persistentID == outputPersistentID }
+        } else {
+            outputInCatalog = catalog.outputDevices.isEmpty == false
+        }
+
+        return AudioRoutingSnapshot(
+            resolvedInputUID: resolvedInput?.uid,
+            defaultInputUID: InputAudioDeviceResolver.defaultInputDeviceUID(),
+            defaultOutputUID: InputAudioDeviceResolver.defaultOutputDeviceUID(),
+            preferredOutputPersistentID: outputPersistentID,
+            outputPersistentIDInCatalog: outputInCatalog,
+            activeInputSampleRate: resolvedInput?.nominalSampleRate ?? 0
+        )
+    }
+
+    func needsAudioReinitializationLocked(
+        previous: AudioRoutingSnapshot?,
+        current: AudioRoutingSnapshot,
+        selector: UInt32
+    ) -> Bool {
+        guard let previous else {
+            return false
+        }
+
+        let inputPreference = preferencesStore.preferences.preferredInputDevice
+        let outputPreference = preferencesStore.preferences.preferredOutputDevice
+
+        if inputPreference.usesSystemDefault,
+           previous.defaultInputUID != current.defaultInputUID {
+            return true
+        }
+
+        if outputPreference.usesSystemDefault,
+           previous.defaultOutputUID != current.defaultOutputUID {
+            return true
+        }
+
+        // Explicit input preference: only react when the chosen device disappears,
+        // not when unrelated devices (e.g. Continuity) are added to the global list.
+        if inputPreference.usesSystemDefault == false,
+           let persistentID = inputPreference.persistentID,
+           persistentID.isEmpty == false {
+            let stillAvailable = InputAudioDeviceResolver.availableInputDevices()
+                .contains { $0.uid == persistentID }
+            if previous.resolvedInputUID != nil, stillAvailable == false {
+                return true
+            }
+        }
+
+        if outputPreference.usesSystemDefault == false,
+           let persistentID = outputPreference.persistentID,
+           persistentID.isEmpty == false,
+           previous.outputPersistentIDInCatalog != current.outputPersistentIDInCatalog {
+            return true
+        }
+
+        if selector == kAudioDevicePropertyNominalSampleRate,
+           previous.resolvedInputUID == current.resolvedInputUID,
+           previous.activeInputSampleRate != current.activeInputSampleRate {
+            return true
+        }
+
+        return false
     }
 
 }

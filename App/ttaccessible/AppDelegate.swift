@@ -94,7 +94,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var pendingUnsavedServerConfiguration: PendingUnsavedServerConfiguration?
 
     private var deviceChangeObserver: Any?
-    private var globalDeviceChangeWorkItem: DispatchWorkItem?
 
     private lazy var updaterController: SPUStandardUpdaterController = SPUStandardUpdaterController(
         startingUpdater: true,
@@ -121,13 +120,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             forName: AudioDeviceChangeMonitor.audioDevicesDidChange,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
-            self?.globalDeviceChangeWorkItem?.cancel()
-            let workItem = DispatchWorkItem { [weak self] in
-                self?.connectionController.restartSoundSystem { _ in }
-            }
-            self?.globalDeviceChangeWorkItem = workItem
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500), execute: workItem)
+        ) { [weak self] notification in
+            let selector = notification.userInfo?[AudioDeviceChangeMonitor.selectorUserInfoKey] as? UInt32 ?? 0
+            self?.connectionController.handleDebouncedAudioHardwareChange(selector: selector)
         }
         requestNotificationPermission()
         showSavedServersWindow()

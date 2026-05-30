@@ -148,6 +148,8 @@ final class TeamTalkConnectionController {
     var lastChannelID: Int32 = 0
     var isRestartingSoundSystem = false
     var suppressDeviceChangeUntil = Date.distantPast
+    var audioHardwareChangeWorkItem: DispatchWorkItem?
+    var lastAudioRoutingSnapshot: AudioRoutingSnapshot?
     var lastAutoAwayCheckTime: CFAbsoluteTime = 0
     var isAutoAwayActive = false
     var autoAwayActivationTime: Date?

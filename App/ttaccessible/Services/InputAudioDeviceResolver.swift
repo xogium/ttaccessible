@@ -166,24 +166,37 @@ enum InputAudioDeviceResolver {
         }
     }
 
-    private nonisolated static func defaultInputDevice(from devices: [InputAudioDeviceInfo]) -> InputAudioDeviceInfo? {
+    nonisolated static func defaultInputDeviceUID() -> String? {
+        coreAudioDefaultDeviceUID(selector: kAudioHardwarePropertyDefaultInputDevice)
+    }
+
+    nonisolated static func defaultOutputDeviceUID() -> String? {
+        coreAudioDefaultDeviceUID(selector: kAudioHardwarePropertyDefaultOutputDevice)
+    }
+
+    private nonisolated static func coreAudioDefaultDeviceUID(selector: AudioObjectPropertySelector) -> String? {
         let systemObjectID = AudioObjectID(kAudioObjectSystemObject)
         var address = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mSelector: selector,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
         var deviceID = AudioObjectID()
         var dataSize = UInt32(MemoryLayout<AudioObjectID>.size)
-        guard AudioObjectGetPropertyData(systemObjectID, &address, 0, nil, &dataSize, &deviceID) == noErr,
-              let uid = stringProperty(
-                objectID: deviceID,
-                selector: kAudioDevicePropertyDeviceUID,
-                scope: kAudioObjectPropertyScopeGlobal
-              ) else {
+        guard AudioObjectGetPropertyData(systemObjectID, &address, 0, nil, &dataSize, &deviceID) == noErr else {
             return nil
         }
+        return stringProperty(
+            objectID: deviceID,
+            selector: kAudioDevicePropertyDeviceUID,
+            scope: kAudioObjectPropertyScopeGlobal
+        )
+    }
 
+    private nonisolated static func defaultInputDevice(from devices: [InputAudioDeviceInfo]) -> InputAudioDeviceInfo? {
+        guard let uid = defaultInputDeviceUID() else {
+            return nil
+        }
         return devices.first(where: { $0.uid == uid })
     }
 

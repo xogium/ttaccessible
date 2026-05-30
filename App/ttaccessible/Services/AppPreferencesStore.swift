@@ -575,16 +575,14 @@ final class AudioPreferencesStore: ObservableObject {
             catalogStale = true
             return
         }
-        // AppDelegate's debounced observer calls TT_RestartSoundSystem() at 500ms.
-        // We schedule our UI refresh at 1s to ensure the restart has completed
-        // and TT_GetSoundDevices() returns fresh data.
+        // Debounced hardware handler refreshes the TeamTalk device cache; match that timing.
         deviceChangeRefreshWorkItem?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
             self?.loadCatalogIfNeeded(forceRefresh: true)
             self?.advancedSettingsStore.refresh()
         }
         deviceChangeRefreshWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(1000), execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(600), execute: workItem)
     }
 
     func suspendWhenHidden() {
