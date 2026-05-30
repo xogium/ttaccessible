@@ -87,11 +87,6 @@ extension TeamTalkConnectionController {
                 DispatchQueue.main.async { completion(.success(())) }
                 return
             }
-            if Date() < self.suppressDeviceChangeUntil {
-                AudioLogger.log("restartSoundSystem: skipped (device-change suppression active)")
-                DispatchQueue.main.async { completion(.success(())) }
-                return
-            }
             self.isRestartingSoundSystem = true
             defer { self.isRestartingSoundSystem = false }
 
@@ -183,7 +178,6 @@ extension TeamTalkConnectionController {
                 return
             }
 
-            self.extendDeviceChangeSuppressionLocked(duration: 5.0)
             let hadActiveAudio = self.outputAudioReady || self.inputAudioReady || self.isAnyMicrophoneEngineRunning
             if hadActiveAudio {
                 // User-changed routing needs a fresh TeamTalk device list, not just close/reopen.
